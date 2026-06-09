@@ -1,14 +1,14 @@
 # Cap CLI Skill for Pi
 
-Simple alias for Cap screen recording CLI from WSL/Linux.
+Provides the `cap` command for Cap screen recording (CapSoftware/Cap) from WSL/Linux.
 
-## Usage
+## Quick Start
 
 ```bash
 # Load in current shell
 source ~/projects/cap-cli-skill/setup.sh
 
-# Use cap command
+# Use cap commands
 cap --version
 cap doctor --json
 cap targets --json
@@ -16,28 +16,42 @@ cap targets --json
 
 ## For AI Agents (Pi, etc.)
 
-Agents can run the verification directly:
-```bash
-# Verify cap works
-~/projects/cap-cli-skill/agent.sh
+Agents should run verification first:
 
-# Or source and use
-source ~/projects/cap-cli-skill/setup.sh && cap doctor --json
+```bash
+source ~/projects/cap-cli-skill/agent.sh
+cap doctor --json
+cap targets --json
 ```
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `cap doctor --json` | Environment & capture readiness diagnostics |
+| `cap targets --json` | List screens, windows, cameras, mics |
+| `cap record start --screen <id> --detach --json` | Start background recording |
+| `cap record stop --id <recordingId> --json` | Stop recording |
+| `cap export <path.cap> --output out.mp4 --json` | Export to MP4 |
+| `cap upload out.mp4 --json` | Upload to Cap (needs CAP_API_KEY) |
+| `cap guide --json` | Agent capability manifest |
+| `cap auth status --json` | Check auth status |
 
 ## Configuration
 
 ```bash
 export CAP_CLI_PATH="/custom/path/cap-cli.exe"  # Override binary location
+export CAP_API_KEY="your-cap-auth-key"          # From Cap Settings
+export CAP_SERVER_URL="https://cap.so"          # Or self-hosted URL
 ```
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `setup.sh` | Defines `cap` alias |
+| `setup.sh` | Defines `cap()` shell function |
 | `agent.sh` | Verification for agents |
-| `SKILL.md` | Pi skill manifest |
+| `SKILL.md` | Skill manifest (Pi/agentskills.io format) |
 
 ## Requirements
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# cap-cli agent helper - verify cap function works
+# cap-cli agent verification - verifies cap function works
+# Usage: source ~/projects/cap-cli-skill/agent.sh
 
 CAP_CLI_PATH="${CAP_CLI_PATH:-/mnt/c/Users/<your-windows-username>/AppData/Local/Cap/cap-cli.exe}"
 
