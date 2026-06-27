@@ -1,34 +1,36 @@
-# cap-cli-skill — docs
+# Docs
 
-Research, findings, and design work toward a proper CLI extension for Cap screen recording.
+## Architecture & Design
 
-## Contents
-
-| File | What it is |
+| File | What |
 |---|---|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | **Start here for the build.** Design decisions, beat cycle, module breakdown, stack layout, build phases |
-| [INVENTORY.md](./INVENTORY.md) | 118 numbered items across all projects — every unique technique, pattern, finding, sourced and tagged |
-| [FINDINGS.md](./FINDINGS.md) | Narrative findings from cross-project research — CDP/WSL reliability, agent-browser bridge, Cap CLI JSON API, project-config schema |
-| [PROJECT-CONFIG-SCHEMA.md](./PROJECT-CONFIG-SCHEMA.md) | Full annotated `project-config.json` schema — zoom, background, cursor, captions, keyboard overlays |
-| [USE-CASES.md](./USE-CASES.md) | 13 generalized use cases for browser-driven recording workflows |
-| [REFACTOR-PLAN.md](./REFACTOR-PLAN.md) | Earlier refactor plan (superseded by DESIGN.md for architecture; still useful for phase staging) |
-| [MY-SETUP.md](./MY-SETUP.md) | Machine-specific reference — IPs, screen IDs, camera/mic names, tool paths |
+| [architecture.md](./ARCHITECTURE.md) | Design decisions, beat cycle, module breakdown, build phases (Record half) |
+| [findings.md](./FINDINGS.md) | 20 technical findings from cross-project research |
+| [inventory.md](./INVENTORY.md) | 118 numbered items — every technique, pattern, finding |
+| [project-config-schema.md](./PROJECT-CONFIG-SCHEMA.md) | Full annotated `project-config.json` schema |
+| [use-cases.md](./USE-CASES.md) | 13 generalised use cases |
+| [refactor-plan.md](./REFACTOR-PLAN.md) | Earlier refactor plan (superseded, kept for phase staging) |
 
-## Guide tool
+## Strategy & Planning
 
-See [`../guide/README.md`](../guide/README.md) for the post-recording pipeline —
-turn `.cap` recordings into illustrated step-by-step guides/SOPs.
-| [scripts/README.md](./scripts/README.md) | Index of gathered reference scripts with source annotations |
+| File | What |
+|---|---|
+| [decisions.md](./decisions.md) | Decision log D1–D10 (Guide half) |
+| [productization.md](./productization.md) | Market landscape + productization strategy |
+| [roadmap.md](./roadmap.md) | Current state + backlog |
+| [upstream-proposal.md](./upstream-proposal.md) | RFC: `cap guide` upstream to CapSoftware/Cap |
+| [upstream-agent-brief.md](./upstream-agent-brief.md) | Agent brief for tightening the guide impl |
 
-## Context
+## Pipeline & Operations
 
-This skill started as a thin WSL shim for `cap-cli.exe`. Research across
-multiple projects revealed a richer surface and a clean architecture:
+| File | What |
+|---|---|
+| [pipeline-audit.md](./pipeline-audit.md) | Full backwards audit of the guide pipeline |
+| [cap-recordings-processed.md](./cap-recordings-processed.md) | Log of processed Cap recordings |
 
-**The bridge:** `agent-browser --headed` (WSLg) launches Linux Chrome as a
-visible Windows window. `cap record --window <id>` captures that window
-specifically. The two tools are fully independent — no CDP cross-boundary,
-no Windows Defender Firewall issue. Full design in [DESIGN.md](./DESIGN.md).
+## Reference
 
-See [INVENTORY.md](./INVENTORY.md) for the complete list of 118 unique
-techniques and patterns gathered from all source projects.
+| File | What |
+|---|---|
+| [my-setup.md](./MY-SETUP.md) | Machine-specific reference — IPs, screen IDs, tool paths |
+| [reference/](./reference/) | Reference scripts + old architecture notes |

@@ -1,0 +1,7 @@
+node_modules/
+.p i/
+null
+*.pyc
+__pycache__/
+guide/spike/spike-output/
+.remember/

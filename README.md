@@ -1,4 +1,4 @@
-# cap-cli-skill
+# cap-tools
 
 Tools for working with Cap screen recordings (CapSoftware/Cap) from WSL.
 
@@ -8,13 +8,13 @@ Two complementary halves:
 |---|---|---|
 | **What** | Automate browser-driven recordings | Turn recordings into illustrated step-by-step docs |
 | **When** | Before the recording | After the recording |
-| **Docs** | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | [`guide/README.md`](guide/README.md) |
 | **Status** | Design phase | Validated prototype |
+| **Docs** | [`docs/architecture.md`](docs/ARCHITECTURE.md) | [`guide/README.md`](guide/README.md) |
 
 ## Quick Start — Cap CLI
 
 ```bash
-source ~/projects/cap-cli-skill/setup.sh
+source setup.sh
 cap --version
 cap doctor --json
 cap targets --json
@@ -26,26 +26,29 @@ cap targets --json
 cd guide
 uv sync
 uv run spike/cap_ingest.py "C:/path/to/recording.cap"
-# → spike/spike-output/cap/<name>/guide.html
 ```
 
-## Docs
+## Structure
 
-| File | What |
-|---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Design decisions, beat cycle, module breakdown, build phases |
-| [`docs/FINDINGS.md`](docs/FINDINGS.md) | 20 technical findings from cross-project research |
-| [`docs/INVENTORY.md`](docs/INVENTORY.md) | 118 numbered items — every technique, pattern, finding |
-| [`docs/PROJECT-CONFIG-SCHEMA.md`](docs/PROJECT-CONFIG-SCHEMA.md) | Full annotated `project-config.json` schema |
-| [`docs/USE-CASES.md`](docs/USE-CASES.md) | 13 generalised use cases |
-| [`docs/MY-SETUP.md`](docs/MY-SETUP.md) | Machine-specific reference |
-| [`guide/CAP-UPSTREAM-PROPOSAL.md`](guide/CAP-UPSTREAM-PROPOSAL.md) | RFC: `cap guide` upstream to CapSoftware/Cap |
-| [`guide/PRODUCTIZATION.md`](guide/PRODUCTIZATION.md) | Market landscape + productization strategy |
-| [`guide/DECISIONS.md`](guide/DECISIONS.md) | Decision log D1–D10 |
-| [`guide/ROADMAP.md`](guide/ROADMAP.md) | Current state + backlog |
+```
+├── setup.sh, agent.sh, SKILL.md    # cap CLI shim for WSL
+├── docs/                            # all documentation
+│   ├── architecture.md              # Record half design
+│   ├── findings.md                  # cross-project research
+│   ├── project-config-schema.md     # .cap config reference
+│   ├── decisions.md                 # Guide half decision log
+│   ├── productization.md            # market + strategy
+│   ├── upstream-proposal.md         # cap guide RFC
+│   └── reference/                   # reference scripts
+├── guide/                           # Guide half (working code)
+│   ├── spike/                       # pipeline scripts
+│   ├── guide.py, mcp_server.py      # CLI + MCP
+│   └── projects/                    # working projects
+└── record/                          # Record half (to be built)
+```
 
 ## Requirements
 
-- Cap Desktop installed on Windows (includes `cap-cli.exe`)
+- Cap Desktop installed on Windows
 - WSL interop enabled
 - For guide tool: Python 3.11+, uv, ffmpeg on PATH
