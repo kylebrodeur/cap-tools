@@ -503,29 +503,28 @@ This is exactly why the 5-retry pattern in old scripts "works sometimes" —
 the block is probabilistic. The fix is to avoid the cross-boundary WebSocket
 entirely using the WSLg path.
 
-### The three paths — a companion project knew two, we have a third **[+]**
+### The three paths — only one is correct **[+]**
 
-| Path | How | Runs where | CDP boundary | Cap target |
+The a companion project session documented two paths. We evaluated a third (WSLg)
+and confirmed it is **not** the right approach — the browser must run on
+Windows, not WSL.
+
+| Path | How | Browser runs on | CDP boundary | Verdict |
 |---|---|---|---|---|
-| **CDP from WSL** (fragile) | `connectOverCDP` → Windows Chrome | WSL | ✗ WS crosses boundary → Firewall resets | `--screen` |
-| **Windows-native** (a companion project solution) | Copy project to `C:\`, Node on Windows | Windows | ✓ none | `--screen` or `--window` |
-| **WSLg** ← recommended | `agent-browser --headed` Linux Chrome via WSLg | WSL | ✓ none | `--window` (specific window) |
+| **CDP from WSL** | `connectOverCDP` → Windows Chrome | Windows | ✗ WS crosses boundary → Firewall resets | ❌ Fragile |
+| **WSLg** | `agent-browser --headed` Linux Chrome via WSLg | WSL (Linux Chrome) | ✓ none | ❌ Browser on wrong side |
+| **Windows-native** ← correct | Copy project to `C:\`, run Node on Windows via PowerShell | Windows | ✓ none | ✅ Reliable |
 
-WSLg is the cleanest: everything runs from WSL, nothing needs copying to
-Windows, Cap captures just the Chrome window.
+**Rule: never open the browser from WSL.** The browser must run on the
+Windows host side. WSL orchestrates via `powershell.exe -Command`; Windows
+executes the browser automation and Cap recording.
 
-### WSLg requirements
+### WSLg — available but not the recording path
 
-WSLg ships with WSL 2 on Windows 11 and recent Windows 10 builds.
-Verify it's running:
-```bash
-wsl.exe --version   # should show WSLg version line
-echo $DISPLAY       # should be :0 or similar
-xdpyinfo 2>&1 | head -1  # should show X.Org or Xwayland
-```
-
-If `DISPLAY` is unset, WSLg is not running. Fallback: use the Windows-native
-path (run Node/agent-browser on Windows) or set up VcXsrv/Xming manually.
+WSLg is present and functional (Linux GUI apps render as Windows windows).
+However, the browser should run on Windows, not WSL. WSLg is useful for
+verification (opening a browser to check a WSL-hosted app is running) but
+not for the recording workflow itself.
 
 ### `netsh portproxy` — when you actually need it
 

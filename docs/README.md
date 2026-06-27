@@ -6,7 +6,7 @@ Research, findings, and design work toward a proper CLI extension for Cap screen
 
 | File | What it is |
 |---|---|
-| [DESIGN.md](./DESIGN.md) | **Start here for the build.** Full architecture: the WSLg bridge, module design, beat cycle, command surface |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | **Start here for the build.** Design decisions, beat cycle, module breakdown, stack layout, build phases |
 | [INVENTORY.md](./INVENTORY.md) | 118 numbered items across all projects — every unique technique, pattern, finding, sourced and tagged |
 | [FINDINGS.md](./FINDINGS.md) | Narrative findings from cross-project research — CDP/WSL reliability, agent-browser bridge, Cap CLI JSON API, project-config schema |
 | [PROJECT-CONFIG-SCHEMA.md](./PROJECT-CONFIG-SCHEMA.md) | Full annotated `project-config.json` schema — zoom, background, cursor, captions, keyboard overlays |
