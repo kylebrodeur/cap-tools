@@ -599,3 +599,34 @@ When the Windows-side runner needs updated files from WSL:
 cp ~/projects/cap-tools/win/beat_runner.py /mnt/c/cap-tools/
 ```
 This is the same pattern a companion project uses for test files.
+
+---
+
+## 22. HTTPS targets need the full Tailscale MagicDNS name, not just an IP
+
+When a recording target requires HTTPS (WordPress HTTPS constants, Secure
+cookies, HSTS), a bare IP won't serve valid TLS. The fix is to expose the
+local app via `tailscale serve` and point the beat-runner at the node's full
+**MagicDNS name** (e.g. `redacted.ts.net`), not the IP.
+
+### Finding the full address via the terminal
+
+`tailscale status --json` reports `Self.DNSName` — the complete MagicDNS
+name with a trailing dot. Strip the dot and you have the HTTPS host:
+
+```bash
+tailscale status --json | python3 -c "import sys,json; print(json.load(sys.stdin)['Self']['DNSName'].rstrip('.'))"
+# → redacted.ts.net
+```
+
+The `tailscale` binary may be WSL-native (`tailscale`) or Windows-side
+(`tailscale.exe`) — `capt/tailscale.py` tries both.
+
+### Implemented in capt
+
+- `capt/tailscale.py` — `magic_dns_name()`, `https_url()`, `resolve_target(url)`
+- `resolve_target()` rewrites an HTTPS localhost/IP URL to the MagicDNS name,
+  preserving path/port. HTTP URLs pass through untouched (Tailscale optional).
+- Wired into `capt record` (rewrites before launching the beat-runner) and
+  `capt preflight` (G4 resolves the target; new **G7** gate requires Tailscale
+  to be up only when the target is HTTPS).

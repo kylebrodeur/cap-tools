@@ -37,9 +37,19 @@ def record(url, beat, out, screen, json_out):
     a beats.json file or passed via stdin.
     """
     import subprocess
+    from capt import tailscale
 
     beat_name = beat or "full"
     out_dir = str(Path(out).resolve())
+
+    # For HTTPS targets, rewrite to the full Tailscale MagicDNS address
+    # (not just an IP) so HTTPS / Secure cookies / HSTS work. No-op for HTTP.
+    if url.lower().startswith("https://"):
+        resolved = tailscale.resolve_target(url)
+        if resolved != url:
+            if not json_out:
+                click.echo(f"→ HTTPS target via Tailscale: {resolved}")
+            url = resolved
 
     # Build PowerShell command
     ps_cmd = (

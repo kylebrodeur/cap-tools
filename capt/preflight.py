@@ -12,6 +12,7 @@ import urllib.request
 from pathlib import Path
 from typing import Optional
 
+from capt import tailscale
 from capt.export import cap_bin
 
 
@@ -124,8 +125,14 @@ def preflight(
         print("  ✗ G3 playwright missing")
         gates.append(False)
 
-    # G4: URL reachable
+    # G4: URL reachable — for HTTPS targets, resolve to the Tailscale
+    # MagicDNS name (full address, not just IP) when available.
     if url:
+        if url.lower().startswith("https://"):
+            resolved = tailscale.resolve_target(url)
+            if resolved != url:
+                print(f"  → HTTPS target rewritten to Tailscale address: {resolved}")
+                url = resolved
         if _url_reachable(url):
             print(f"  ✓ G4 URL reachable  ({url})")
             gates.append(True)
@@ -152,6 +159,23 @@ def preflight(
     else:
         print("  ✗ G6 PowerShell NOT reachable")
         gates.append(False)
+
+    # G7: Tailscale (only required for HTTPS targets)
+    needs_https = bool(url) and url.lower().startswith("https://")
+    if needs_https:
+        if tailscale.is_running():
+            name = tailscale.magic_dns_name()
+            print(f"  ✓ G7 Tailscale up  ({name})")
+            gates.append(True)
+        elif tailscale.is_available():
+            print("  ✗ G7 Tailscale installed but not running (HTTPS target needs it)")
+            gates.append(False)
+        else:
+            print("  ✗ G7 Tailscale not installed (HTTPS target needs it)")
+            gates.append(False)
+    else:
+        print("  - G7 Tailscale skipped (HTTP target — not needed)")
+        gates.append(True)
 
     passed = all(gates)
     print(f"\n  Preflight: {'✓ ALL GATES PASS' if passed else '✗ SOME GATES FAILED'}")
