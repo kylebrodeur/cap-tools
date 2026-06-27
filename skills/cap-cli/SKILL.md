@@ -2,7 +2,7 @@
 name: cap-cli
 description: Provides the `cap` command for Cap screen recording (CapSoftware/Cap) from WSL/Linux. Auto-detects cap-cli.exe and defines a shell function. Agents can verify with agent.sh.
 user-invocable: true
-allowed-tools: Bash(source ~/projects/cap-cli-skill/setup.sh), Bash(source ~/projects/cap-cli-skill/agent.sh), Bash(cap *)
+allowed-tools: Bash(source ~/projects/cap-cli-skill/skills/cap-cli/setup.sh), Bash(source ~/projects/cap-cli-skill/skills/cap-cli/agent.sh), Bash(cap *)
 ---
 
 # Cap CLI Skill
@@ -13,7 +13,7 @@ Provides the `cap` command for Cap screen recording from WSL/Linux by wrapping t
 
 ```bash
 # One-time load in current shell
-source ~/projects/cap-cli-skill/setup.sh
+source ~/projects/cap-cli-skill/skills/cap-cli/setup.sh
 
 # Use cap commands
 cap --version

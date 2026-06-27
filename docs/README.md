@@ -34,3 +34,11 @@
 |---|---|
 | [my-setup.md](./MY-SETUP.md) | Machine-specific reference — IPs, screen IDs, tool paths |
 | [reference/](./reference/) | Reference scripts + old architecture notes |
+
+## Skills
+
+[`../skills/cap-cli/SKILL.md`](../skills/cap-cli/SKILL.md) — cap-cli agent skill (agentskills.io format).
+
+## Guide tool
+
+[`../guide/README.md`](../guide/README.md) — post-recording pipeline: turn `.cap` into illustrated guides.

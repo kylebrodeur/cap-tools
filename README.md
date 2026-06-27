@@ -14,7 +14,7 @@ Two complementary halves:
 ## Quick Start — Cap CLI
 
 ```bash
-source setup.sh
+source skills/cap-cli/setup.sh
 cap --version
 cap doctor --json
 cap targets --json
@@ -31,7 +31,8 @@ uv run spike/cap_ingest.py "C:/path/to/recording.cap"
 ## Structure
 
 ```
-├── setup.sh, agent.sh, SKILL.md    # cap CLI shim for WSL
+├── skills/cap-cli/                  # cap CLI shim for WSL (agentskills.io)
+│   ├── SKILL.md, setup.sh, agent.sh
 ├── docs/                            # all documentation
 │   ├── architecture.md              # Record half design
 │   ├── findings.md                  # cross-project research
@@ -41,7 +42,8 @@ uv run spike/cap_ingest.py "C:/path/to/recording.cap"
 │   ├── upstream-proposal.md         # cap guide RFC
 │   └── reference/                   # reference scripts
 ├── guide/                           # Guide half (working code)
-│   ├── spike/                       # pipeline scripts
+│   ├── spike/                       # core pipeline (cap_ingest, structure, build_walkthrough_doc, transcribe)
+│   ├── _archive/                    # superseded scripts (assemble, record, extract_frames)
 │   ├── guide.py, mcp_server.py      # CLI + MCP
 │   └── projects/                    # working projects
 └── record/                          # Record half (to be built)
