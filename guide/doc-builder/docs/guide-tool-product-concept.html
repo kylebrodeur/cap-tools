@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide Tool — Product Concept</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #222;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+    background: #fff;
+  }
+  .doc-title { font-size: 30px; font-weight: 700; color: #1A3A5C; margin: 0 0 4px; }
+  .doc-sub { font-size: 14px; color: #888; margin: 0 0 6px; }
+  .doc-date { font-size: 12px; color: #bbb; margin: 0 0 24px; }
+  hr.rule { border: none; border-top: 4px solid #1A3A5C; margin: 0 0 36px; }
+  h1 { font-size: 20px; font-weight: 700; color: #1A3A5C; margin: 48px 0 10px; padding-bottom: 8px; border-bottom: 2px solid #D0DFF0; }
+  h2 { font-size: 15px; font-weight: 700; color: #2C5F8A; margin: 28px 0 8px; }
+  h3 { font-size: 13px; font-weight: 700; color: #444; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  p { margin: 0 0 14px; color: #333; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; color: #333; }
+  li { margin-bottom: 5px; }
+  strong { color: #1A3A5C; }
+
+  /* Vision block */
+  .vision {
+    background: #1A3A5C;
+    color: #fff;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin: 0 0 32px;
+  }
+  .vision p { color: #C8D9EC; margin: 0; font-size: 15px; line-height: 1.7; }
+  .vision strong { color: #fff; }
+
+  /* Comparison table */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th { background: #1A3A5C; color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
+  td { padding: 8px 12px; border-bottom: 1px solid #E8EEF5; vertical-align: top; }
+  tr:nth-child(even) td { background: #F5F8FC; }
+  .good { color: #1F7A45; font-weight: 600; }
+  .bad  { color: #A0190D; font-weight: 600; }
+  .mid  { color: #7A5800; font-weight: 600; }
+
+  /* Phase 0 — prototype callout */
+  .phase0 {
+    border: 2px solid #E6C84A;
+    background: #FFFBEA;
+    border-radius: 8px;
+    padding: 14px 20px 16px;
+    margin: 0 0 16px;
+  }
+  .phase0 h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #7A5800; margin: 0 0 3px; }
+  .phase0 .phase-name { font-size: 16px; font-weight: 700; color: #4A3800; margin: 0 0 8px; }
+  .phase0 p { font-size: 13px; color: #4A3800; margin: 0 0 10px; }
+  .phase0 ul { margin: 0; padding-left: 18px; font-size: 12px; color: #4A3800; }
+  .phase0 li { margin-bottom: 4px; }
+
+  /* Phase cards */
+  .phases { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 16px 0 24px; }
+  .phase-card {
+    border: 1px solid #D8E4F0;
+    border-radius: 7px;
+    padding: 14px 16px;
+  }
+  .phase-card h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin: 0 0 4px; }
+  .phase-card .phase-name { font-size: 15px; font-weight: 700; color: #1A3A5C; margin: 0 0 10px; }
+  .phase-card ul { margin: 0; padding-left: 16px; font-size: 12px; }
+  .phase-card li { margin-bottom: 4px; }
+  .phase-card.p1 { border-top: 4px solid #1A3A5C; }
+  .phase-card.p2 { border-top: 4px solid #2980B9; }
+  .phase-card.p3 { border-top: 4px solid #5BAD7A; }
+
+  /* Decisions */
+  .decision { padding: 9px 0; border-bottom: 1px solid #EEF0F3; font-size: 13px; display: grid; grid-template-columns: 220px 1fr; gap: 12px; }
+  .decision:last-child { border-bottom: none; }
+  .d-label { font-weight: 700; color: #1A3A5C; }
+  .d-answer { color: #333; }
+
+  /* Workspace bar */
+  .workspaces { display: flex; gap: 0; margin: 16px 0 8px; }
+  .ws {
+    flex: 1;
+    text-align: center;
+    padding: 16px 10px 14px;
+    border: 1px solid #D0DFF0;
+    position: relative;
+    cursor: default;
+  }
+  .ws:not(:last-child)::after {
+    content: "▶";
+    position: absolute;
+    right: -11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #2980B9;
+    font-weight: 700;
+    z-index: 2;
+    font-size: 13px;
+    background: #fff;
+    padding: 0 1px;
+  }
+  .ws:first-child { border-radius: 7px 0 0 7px; }
+  .ws:last-child  { border-radius: 0 7px 7px 0; }
+  .ws.ws-prepare    { background: #EBF5FF; border-top: 4px solid #1A3A5C; }
+  .ws.ws-capture    { background: #FFF4E8; border-top: 4px solid #D4730A; }
+  .ws.ws-create     { background: #F0F8F0; border-top: 4px solid #1F7A45; }
+  .ws.ws-publish    { background: #F5EDFF; border-top: 4px solid #6B3FA0; }
+  .ws-icon  { font-size: 20px; margin: 0 0 4px; }
+  .ws-label { font-size: 14px; font-weight: 700; color: #1A3A5C; margin: 0 0 3px; }
+  .ws-sub   { font-size: 10px; color: #666; line-height: 1.4; }
+  .ws-stages { font-size: 10px; color: #888; margin-top: 6px; border-top: 1px solid #D0DFF0; padding-top: 5px; line-height: 1.5; }
+
+  /* Old workflow steps (kept for sub-stage detail) */
+  .workflow { display: flex; gap: 0; margin: 16px 0 24px; }
+  .wf-step {
+    flex: 1;
+    text-align: center;
+    padding: 12px 8px;
+    background: #F0F5FB;
+    border: 1px solid #D0DFF0;
+    position: relative;
+  }
+  .wf-step:not(:last-child)::after {
+    content: "→";
+    position: absolute;
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #1A3A5C;
+    font-weight: 700;
+    z-index: 1;
+    font-size: 16px;
+  }
+  .wf-step:first-child { border-radius: 6px 0 0 6px; }
+  .wf-step:last-child  { border-radius: 0 6px 6px 0; }
+  .wf-num { font-size: 18px; font-weight: 700; color: #1A3A5C; }
+  .wf-label { font-size: 11px; font-weight: 700; color: #1A3A5C; margin: 2px 0; }
+  .wf-sub { font-size: 10px; color: #666; }
+
+  /* Film analogy cards */
+  .film-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0 24px; }
+  .film-card { border-left: 4px solid #2980B9; padding: 10px 14px; background: #F5F9FF; border-radius: 0 6px 6px 0; }
+  .film-card .fc-term { font-size: 11px; font-weight: 700; color: #2980B9; text-transform: uppercase; letter-spacing: 0.06em; }
+  .film-card .fc-map { font-size: 12px; font-weight: 700; color: #1A3A5C; margin: 2px 0 4px; }
+  .film-card .fc-desc { font-size: 12px; color: #444; margin: 0; }
+
+  /* Feature list */
+  .feature-group { margin: 0 0 20px; }
+  .feature-item {
+    display: grid;
+    grid-template-columns: 180px 1fr 80px;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid #EEF0F3;
+    font-size: 13px;
+    align-items: start;
+  }
+  .feature-item:last-child { border-bottom: none; }
+  .fi-name { font-weight: 700; color: #1A3A5C; }
+  .fi-desc { color: #333; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tag-mvp { background: #1A3A5C; color: #fff; }
+  .tag-v2  { background: #2980B9; color: #fff; }
+  .tag-v3  { background: #5BAD7A; color: #fff; }
+
+  /* Differentiator callout */
+  .diff-box {
+    background: #FFF8E1;
+    border-left: 4px solid #E6C84A;
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 12px 0 20px;
+    font-size: 13px;
+    color: #4A3800;
+  }
+  .diff-box strong { color: #7A5800; }
+
+  /* Open questions */
+  .question { padding: 8px 0; border-bottom: 1px solid #EEF0F3; font-size: 13px; display: flex; gap: 10px; }
+  .q-icon { color: #2980B9; font-weight: 700; flex-shrink: 0; }
+
+  .footer { margin-top: 60px; padding-top: 16px; border-top: 1px solid #E0E0E0; font-size: 12px; color: #999; font-style: italic; }
+</style>
+</head>
+<body>
+
+<p class="doc-title">Guide Tool — Product Concept</p>
+<p class="doc-sub">A desktop application for recording, analyzing, and generating step-by-step admin guides</p>
+<p class="doc-date">Draft — March 2026 &nbsp;·&nbsp; Internal</p>
+<hr class="rule">
+
+<!-- Vision -->
+<div class="vision">
+  <p><strong>The core insight:</strong> Guidde and Scribe treat every screen state as equal — they screenshot and caption without understanding intent, narrative, or workflow structure. The result is bloated, manually-corrected guides. <strong>This tool records not just what's on screen, but what's happening</strong> — capturing OS-level events, UI element names, keyboard shortcuts, and a real-time transcript alongside the video. A local AI model then understands the workflow semantically and produces a guide that's already right the first time, with a built-in review loop for anything that needs a re-shoot.</p>
+</div>
+
+<!-- Origins -->
+<h1>Project Origins</h1>
+
+<p>This project started as a Playwright-based approach: Node.js scripts that would run browser automation, capture technical metadata (CSS selectors, network calls, API responses, console logs), and output them alongside a recording for upload to Claude Cowork. That approach was useful for browser-specific workflows and introduced the core concept of a <em>sidecar</em> — structured technical data captured in parallel with the video, not derived from it after the fact.</p>
+
+<p>The current design generalizes this. Windows UI Automation replaces Playwright as the sidecar capture layer, making the tool work across all applications — not just browsers. But the Playwright insight survives as a future Phase 2 enhancement: for browser-specific workflows, Playwright can run as a second optional sidecar layer that captures CSS selectors and network payloads that UI Automation doesn't see, enabling a <strong>Technical Reference</strong> view alongside the standard User Guide output from the same recording session.</p>
+
+<p>The other original assumption — a junior engineer running scripts, a separate Cowork session for guide assembly — is replaced entirely. This is a solo developer + AI agents project. The app is the integration point; Claude (via Cowork and MCP tools) is the AI layer running inside it, not an external manual step.</p>
+
+<!-- The problem -->
+<h1>The Problem</h1>
+
+<table>
+  <thead><tr><th>Tool</th><th>How It Works</th><th>Why It Falls Short</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Guidde</strong></td>
+      <td>Browser extension, captures click events + screenshots, GPT-generated captions</td>
+      <td class="bad">Doesn't understand multi-step context. Step text is generic ("Click here"). Struggles with tabbed UIs, scrolling panels, anything beyond a single click.</td>
+    </tr>
+    <tr>
+      <td><strong>Scribe</strong></td>
+      <td>Similar — click capture + auto-screenshot + template overlay</td>
+      <td class="bad">Same fundamental limitation. No semantic understanding. Significant manual editing required for anything non-trivial. Browser/desktop split is clunky.</td>
+    </tr>
+    <tr>
+      <td><strong>Current workflow<br>(video + Claude)</strong></td>
+      <td>Screen recording → transcript JSON → frame extraction → AI-structured HTML guide</td>
+      <td class="mid">Already produces better guides than either tool. The remaining friction: recording discipline, transcript export, manual frame selection, multiple back-and-forth rounds for corrections.</td>
+    </tr>
+    <tr>
+      <td><strong>This tool</strong></td>
+      <td>Structured recording session → rich sidecar data → local AI guide generation → built-in review + re-shoot loop</td>
+      <td class="good">Eliminates the friction at every stage. Guide is correct (or nearly so) before any human review begins.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- The filmmaking framework -->
+<h1>The Filmmaking Framework</h1>
+
+<p>The analogy that makes this product coherent: a professional production doesn't shoot once and ship. They shoot a <em>master shot</em> (the whole scene, wide), then go back for <em>coverage</em> (close-ups, inserts, reactions). The editor assembles from all of it. This is exactly the right mental model for guide creation.</p>
+
+<div class="film-grid">
+  <div class="film-card">
+    <div class="fc-term">Film: Master Shot</div>
+    <div class="fc-map">→ The Full Workflow Recording</div>
+    <div class="fc-desc">One continuous take through the entire workflow, top to bottom. Establishes sequence, pacing, and narrative structure. Doesn't need to be perfect — it's the foundation everything else is assembled around.</div>
+  </div>
+  <div class="film-card">
+    <div class="fc-term">Film: Coverage / Close-Ups</div>
+    <div class="fc-map">→ Supplemental Detail Clips</div>
+    <div class="fc-desc">Short focused recordings of specific UI panels, tabbed settings, or complex interactions. These are the <code>private-page-settings.mp4</code> equivalents — deliberate, paced, one-thing-at-a-time.</div>
+  </div>
+  <div class="film-card">
+    <div class="fc-term">Film: Insert Shot</div>
+    <div class="fc-map">→ Static Screenshot of a Key Field</div>
+    <div class="fc-desc">A clean capture of a specific UI state: a filled-in form, an activity code in the URL bar, a confirmation dialog. Sometimes a still image communicates better than a frame from a recording.</div>
+  </div>
+  <div class="film-card">
+    <div class="fc-term">Film: B-Roll</div>
+    <div class="fc-map">→ Context / Navigation Screenshots</div>
+    <div class="fc-desc">The manage dashboard, the activity list, the enrollment screen — establishing shots that orient the reader before the key action happens. Often reused across multiple guides.</div>
+  </div>
+  <div class="film-card">
+    <div class="fc-term">Film: Re-Shoot</div>
+    <div class="fc-map">→ Flagged Segments for Re-Recording</div>
+    <div class="fc-desc">After analysis, the AI flags specific steps where the recording was unclear, the UI was in a transition state, or content is missing. The user re-records just those segments — not the whole thing.</div>
+  </div>
+  <div class="film-card">
+    <div class="fc-term">Film: Assembly Cut</div>
+    <div class="fc-map">→ AI-Generated Guide Draft</div>
+    <div class="fc-desc">The first pass guide, assembled automatically from all assets. Not final, but already close. The editor (the user) reviews it and approves, annotates, or requests re-shoots — not rewriting from scratch.</div>
+  </div>
+</div>
+
+<!-- Workspaces -->
+<h1>Application Workspaces</h1>
+
+<p>The app is organized around four workspaces, each with a distinct purpose and tool set. The user moves through them left to right — but can loop back from <strong>Create</strong> to <strong>Capture</strong> as many times as needed without losing any prior work.</p>
+
+<div class="workspaces">
+  <div class="ws ws-prepare">
+    <div class="ws-icon">📋</div>
+    <div class="ws-label">Prepare</div>
+    <div class="ws-sub">Project setup · Audience · Outline</div>
+    <div class="ws-stages">Previz · Terminology · B-roll library</div>
+  </div>
+  <div class="ws ws-capture">
+    <div class="ws-icon">⏺</div>
+    <div class="ws-label">Capture</div>
+    <div class="ws-sub">Record · Tag · Re-capture</div>
+    <div class="ws-stages">Master shot · Coverage clips · Event-guided re-shoots</div>
+  </div>
+  <div class="ws ws-create">
+    <div class="ws-icon">✏️</div>
+    <div class="ws-label">Create</div>
+    <div class="ws-sub">Analyze · Review · Edit</div>
+    <div class="ws-stages">AI analysis · Storyboard editor · Re-shoot requests</div>
+  </div>
+  <div class="ws ws-publish">
+    <div class="ws-icon">📤</div>
+    <div class="ws-label">Publish</div>
+    <div class="ws-sub">Export · Brand · Distribute</div>
+    <div class="ws-stages">HTML · DOCX · PDF · LMS upload</div>
+  </div>
+</div>
+
+<h2>Workspace 1 — Prepare</h2>
+<p>Before any recording, the user establishes the project context: what platform is being documented, who the audience is, known terminology, and a step outline. The outline is the key input — it names each step, notes expected sub-sections (e.g., "Properties panel — 5 tabs, each needs a frame"), and flags anticipated callouts. This outline becomes the HUD checklist during Capture and the structural scaffold for AI analysis in Create. A well-filled Prepare workspace means the AI arrives at Create already knowing what the guide should look like.</p>
+
+<h2>Workspace 2 — Capture</h2>
+<p>All recording happens here: master shots, coverage clips, and re-shoots. The built-in recorder runs ffmpeg under the hood for encoding, but uses the OS's native screen capture APIs for performance — DXGI Desktop Duplication on Windows for hardware-accelerated, zero-copy frame capture. On-screen controls are handled by the OS, not custom-built: a global hotkey set for record/pause/tag, a system tray icon for control, and an always-on-top Tauri window for the step HUD — all using native facilities. While recording, a sidecar event log captures every click, keyboard shortcut, focus change, and scroll with the target UI element name. Re-shoots triggered from Create land back here, with the app pre-loaded with the event log context for that specific step.</p>
+
+<h2>Workspace 3 — Create</h2>
+<p>The production workspace. After recording, the local AI model (Ollama) ingests the video, transcript, and event log and produces a proposed guide structure. The storyboard editor presents this as cards — one per step, showing the selected frame, step text, and sidecar event summary. The user reviews, approves, edits inline, picks alternative frames, and marks re-shoots. Cards flagged for re-shoot carry their full event log context back to Capture for guided re-capture. This is the loop: Create surfaces problems; Capture fixes them; Create re-analyzes and closes the card.</p>
+
+<h2>Workspace 4 — Publish</h2>
+<p>One-click export to HTML (self-contained, base64 images), DOCX, or PDF. Branding (logo, color scheme) is applied at export time from project defaults. Export settings: table of contents on/off, image quality, output language (future: translate via local model). LMS direct publish (Phase 3).</p>
+
+<!-- Detailed stage breakdown -->
+<h1>Stage Detail</h1>
+
+<div class="workflow">
+  <div class="wf-step">
+    <div class="wf-num">1</div>
+    <div class="wf-label">Previz</div>
+    <div class="wf-sub">Outline + setup</div>
+  </div>
+  <div class="wf-step">
+    <div class="wf-num">2</div>
+    <div class="wf-label">Record</div>
+    <div class="wf-sub">Master + coverage</div>
+  </div>
+  <div class="wf-step">
+    <div class="wf-num">3</div>
+    <div class="wf-label">Analyze</div>
+    <div class="wf-sub">AI + sidecar review</div>
+  </div>
+  <div class="wf-step">
+    <div class="wf-num">4</div>
+    <div class="wf-label">Review</div>
+    <div class="wf-sub">Storyboard editor</div>
+  </div>
+  <div class="wf-step">
+    <div class="wf-num">5</div>
+    <div class="wf-label">Re-Shoot</div>
+    <div class="wf-sub">Event-guided re-capture</div>
+  </div>
+  <div class="wf-step">
+    <div class="wf-num">6</div>
+    <div class="wf-label">Export</div>
+    <div class="wf-sub">HTML / DOCX / PDF</div>
+  </div>
+</div>
+
+<h2>Stage 1 — Previz (Pre-Visualization) · <em>Prepare</em></h2>
+<p>Before recording, the user sketches their outline in the app: how many steps, what sections, any anticipated "gotchas" or callout notes. This outline becomes two things: (1) a guided checklist the app shows during recording as a floating HUD, and (2) the structural scaffold the AI uses when assembling the guide. A recording with a confirmed outline going in skips the entire "figure out the structure" phase on the other side.</p>
+
+<h2>Stage 2 — Recording · <em>Capture</em></h2>
+<p>The app records the screen using the OS native capture API (DXGI Desktop Duplication on Windows), encoding via ffmpeg with resolution/quality tuned for performance — typically 1920×1080 at CRF 18 for H.264, producing high-fidelity frames without excessive file size. On-screen recording controls use existing OS mechanisms: global hotkeys registered through the OS, a system tray icon, and a minimal always-on-top overlay for the step HUD using the app framework's native transparent window support. Simultaneously: (a) local Whisper transcription runs post-recording or in a background thread, (b) a sidecar event log records every click, keyboard shortcut, scroll, and focus-change with UI element names via Windows UI Automation. The HUD shows the current step and lets the user tag moments without interrupting flow.</p>
+
+<h2>Stage 3 — Analysis · <em>Create</em></h2>
+<p>After recording stops, the local AI model (served via Ollama) ingests: the video, the transcript, and the sidecar event log. It produces a proposed guide structure — steps identified from the event log, screenshots selected from frames at pause-detected moments, callout notes from flagged transcript segments. It also flags segments that likely need re-shoots: low-confidence transcript, hover state detected in frame, UI mid-transition, step text ambiguous.</p>
+
+<h2>Stage 4 — Storyboard Editor · <em>Create</em></h2>
+<p>Not a video timeline. A card-per-step interface — think a horizontal storyboard, not Premiere. Each card shows: the selected screenshot, the step text, the sidecar events for that step (e.g., "clicked Enroll Users button"), and a status badge (Good / Needs Review / Re-Shoot Flagged). The user can: approve cards, edit text inline, swap to a different frame from the same timestamp range, or mark a card for re-shoot. Coverage clips (supplemental recordings) can be dropped into the project and their frames automatically replace flagged cards.</p>
+
+<h2>Stage 5 — Re-Shoot Loop · <em>Capture ← Create</em></h2>
+<p>For any cards flagged for re-shoot, the app doesn't just tell the user what to re-record — it already has everything needed to get them back to the exact UI state. The sidecar event log for that step is a complete record of every action taken to reach it: which menus were opened, which tabs were clicked, what navigation path was followed. The app replays that sequence automatically (using the OS accessibility API to drive actions) or step-by-steps the user through it with confirmation prompts at each action, landing them in the precise starting state for re-capture. Human confirmation is always available before actions are executed. Agent replay handles the navigation; the human handles the recording. The new footage slots in, the card updates, the guide regenerates in Create.</p>
+
+<h2>Stage 6 — Export · <em>Publish</em></h2>
+<p>One-click export to HTML (self-contained, base64 images), DOCX, or PDF. The HTML format is already proven to work well. Export settings: include/exclude table of contents, branding (logo, color scheme), output language (future: translate via local model).</p>
+
+<!-- Features -->
+<h1>Feature List by Phase</h1>
+
+<div class="feature-item" style="font-weight:700; font-size:11px; color:#888; text-transform:uppercase; letter-spacing:0.05em; border-bottom: 2px solid #D0DFF0;">
+  <span>Feature</span><span>Description</span><span>Phase</span>
+</div>
+
+<h3>Recording & Capture</h3>
+<div class="feature-group">
+  <div class="feature-item">
+    <div class="fi-name">Built-in screen recorder</div>
+    <div class="fi-desc">Uses the OS native capture API for frame acquisition — DXGI Desktop Duplication on Windows (hardware-accelerated, zero-copy, no dropped frames). ffmpeg handles encoding: H.264 at CRF 18, 1920×1080 by default. CRF encoding balances quality and file size automatically — no manual bitrate tuning needed. Resolution is configurable; the app enforces a consistent capture resolution per project so all guide screenshots have the same dimensions. Full-screen or single-window capture modes.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">On-screen recording controls</div>
+    <div class="fi-desc">Built on existing OS and framework facilities — not custom controls from scratch. Global hotkeys registered through the OS intercept shortcuts anywhere on screen (record, pause, tag step, flag re-shoot) without requiring window focus. System tray icon for start/stop/status. The step HUD is a native always-on-top transparent window provided by Tauri — no custom overlay rendering engine required. If OBS is present, its WebSocket API can optionally be used as the recording backend, inheriting its mature scene and source management.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Local Whisper transcription</div>
+    <div class="fi-desc">Post-recording transcription via Ollama (or whisper.cpp directly). Outputs timestamped JSON with word-level timing. Word-level timestamps are the key input for the <code>click_timestamp + 0.5s</code> frame selection formula and for detecting callout phrases ("make sure", "important:") in transcript text.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Sidecar event capture</div>
+    <div class="fi-desc">OS-level click, keyboard, scroll, and focus-change events with timestamps and target element names (via Windows UI Automation API). Stored alongside video as a JSON sidecar file. This is the core data that enables step detection, auto-drafted step text, and event-guided re-shoot replay — without it, the AI is working from transcript and frames alone.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Recording HUD</div>
+    <div class="fi-desc">Always-on-top transparent overlay showing: current step name from the outline, elapsed time, and active hotkeys. Implemented as a Tauri transparent frameless window — not a custom-rendered overlay system. Stays out of the way and doesn't appear in the capture (positioned outside the capture region or in a separate display if available).</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Event-guided re-shoot replay</div>
+    <div class="fi-desc">When a card in Create is flagged for re-shoot, the sidecar event log already contains the complete navigation path to reach that UI state. The app can replay that sequence automatically — using the OS accessibility API to execute the same clicks, tab navigations, and menu openings — landing the user in the exact starting state for re-capture. The user confirms at each replayed action before it executes, or can approve the full sequence at once. Agent-driven for navigation; human-controlled for the actual recording. The result slots directly into the flagged card, closing the loop without any manual re-navigation.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Playwright browser sidecar</div>
+    <div class="fi-desc">For browser-based workflows, an optional second sidecar layer using Playwright captures what Windows UI Automation can't: CSS selectors, XPath, network requests, API response bodies, and console logs. Runs alongside the main recording session. Unlocks a <strong>Technical Reference</strong> output mode — same workflow, two guide views: User Guide (element names, clean steps) and Technical Reference (selectors, API calls). Also enables auto-generated Playwright test scripts from the captured workflow data. Directly evolved from the original Playwright-based documentation plan.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Keyboard shortcut capture</div>
+    <div class="fi-desc">When the user presses a keyboard shortcut during the workflow being documented (e.g., Ctrl+S, Ctrl+Z), it's captured in the sidecar log and can be rendered as a shortcut callout in the guide.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Mouse click visualization</div>
+    <div class="fi-desc">Optional visual ripple or highlight composited onto frames at click coordinates from the event log — so screenshots show exactly where the click happened without needing the cursor to be visible or positioned correctly.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+</div>
+
+<h3>Previz & Project Setup</h3>
+<div class="feature-group">
+  <div class="feature-item">
+    <div class="fi-name">Outline builder</div>
+    <div class="fi-desc">Pre-recording step sketcher. Name each step, note any callouts or warnings, flag complex sub-sections that will need coverage clips. Becomes the HUD checklist during recording.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Project management</div>
+    <div class="fi-desc">A project holds all assets: recordings, transcripts, sidecar data, coverage clips, and the generated guide. Projects are versioned so re-shoots don't overwrite originals.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Asset library</div>
+    <div class="fi-desc">B-roll / reusable screenshots (e.g., the Manage dashboard home screen) can be saved to the library and reused across projects without re-recording.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+</div>
+
+<h3>AI Analysis & Guide Generation</h3>
+<div class="feature-group">
+  <div class="feature-item">
+    <div class="fi-name">Step detection</div>
+    <div class="fi-desc">Using sidecar events + transcript, automatically identify step boundaries: click on a new UI element = likely a new step. Pause in speech + no events = section transition. Propose step list for user confirmation.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Frame selection</div>
+    <div class="fi-desc">For each step, select the best frame: the moment after the relevant click lands, the cursor away from interactive elements, UI fully rendered. Uses word-level transcript timing + event log to find the right instant.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Step text generation</div>
+    <div class="fi-desc">Draft step text from the transcript segment + UI element name from sidecar. "Clicked 'Enroll Users' button" + transcript "now click enroll users at the top right" = "Click the Enroll Users button (top right)."</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Pre-launch analysis</div>
+    <div class="fi-desc">Before presenting the storyboard to the user, flag steps that are likely problems: frame is mid-transition, hover state detected, transcript confidence low, step text is ambiguous, a sub-section has multiple tabs but only one frame captured.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Callout detection</div>
+    <div class="fi-desc">Identify segments where the speaker says "note:", "important:", "make sure", "don't" — auto-propose as warning/tip callout boxes in the guide.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Coverage gap detection</div>
+    <div class="fi-desc">Detect tabbed UI panels (multiple tabs visible in a single frame) and flag that coverage clips are needed for each tab. Show the user: "Properties panel has 5 tabs — only the General tab was captured. Add a coverage clip?"</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+</div>
+
+<h3>Storyboard Editor</h3>
+<div class="feature-group">
+  <div class="feature-item">
+    <div class="fi-name">Card-based step view</div>
+    <div class="fi-desc">One card per step. Shows: selected frame, step text, sidecar event summary ("clicked: Enrollments tab"), status badge. Not a video timeline — a storyboard you scroll through and approve card by card.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Inline text editing</div>
+    <div class="fi-desc">Edit step text directly on the card. Changes are reflected immediately in the guide preview. No separate editor pane — the card is the editor.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Frame picker</div>
+    <div class="fi-desc">For each card, show a filmstrip of ±3 seconds of frames. Click any frame to use it instead of the auto-selected one. Eliminates the manual ffmpeg timestamp-hunting from the current workflow.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Re-shoot request</div>
+    <div class="fi-desc">Flag a card for re-shoot. The app generates a precise brief: what UI state is needed, what the current problem is, and optionally guides the re-shoot with the HUD overlay targeting just that step.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Live guide preview</div>
+    <div class="fi-desc">Side panel showing the rendered HTML guide that updates as cards are edited. What you approve in the storyboard is what ships in the export.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Annotation tools</div>
+    <div class="fi-desc">On any frame: draw arrows, add text callouts, highlight a specific UI element with a box or circle. Common in Guidde/Scribe — needed for parity.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+</div>
+
+<h3>Export &amp; Publish</h3>
+<div class="feature-group">
+  <div class="feature-item">
+    <div class="fi-name">HTML export</div>
+    <div class="fi-desc">Self-contained HTML file, all images base64-encoded inline. The proven local format — printable, shareable, no CDN dependencies, works offline. Primary output for V1.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Markdown export</div>
+    <div class="fi-desc">Clean Markdown file with images saved alongside as a folder (e.g., <code>guide-name/</code>). Compatible with Obsidian, GitHub, Notion (import), and any static site generator. A Markdown-first output keeps the guide text durable and portable — HTML is rendered from it, not the other way around.</div>
+    <span class="tag tag-mvp">MVP</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Publish to Google Drive</div>
+    <div class="fi-desc">Export HTML directly to a configured Google Drive folder via OAuth. The guide is stored as an HTML file — Drive renders it for sharing. No DOCX conversion needed. One-click from the Publish workspace.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Publish to Notion</div>
+    <div class="fi-desc">Push guide content to a Notion page via the Notion API. Text blocks, images, and step structure map naturally to Notion's block model. Notion becomes a distribution and collaboration layer without being the authoring environment.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+  <div class="feature-item">
+    <div class="fi-name">Branding / theming</div>
+    <div class="fi-desc">Logo, brand colors, and font applied to HTML output at export time. Configured per project in Prepare.</div>
+    <span class="tag tag-v2">V2</span>
+  </div>
+</div>
+
+<!-- Phase plan -->
+<h1>Phase Plan</h1>
+
+<p style="color:#666; font-size:13px; margin: 0 0 16px;">Built solo + AI agents. Spike and validate before investing in polish. Each phase must prove the previous one works before the next begins.</p>
+
+<div class="phase0">
+  <h4>⚡ Start here — Phase 0</h4>
+  <div class="phase-name">Prototype / Spike</div>
+  <p>The simplest possible version of the core loop: record → transcribe → generate a guide. No storyboard editor, no AI analysis, no HUD, no re-shoot loop. Enough to validate that the data pipeline produces something useful and that the recording quality + event capture is reliable.</p>
+  <ul>
+    <li>ffmpeg DXGI capture running and producing clean frames</li>
+    <li>Whisper large-v3 transcription producing word-level timestamps (via whisper.cpp)</li>
+    <li>Minimal sidecar: click target name + timestamp only</li>
+    <li>Naive guide generation: transcript segments + nearest frame → HTML output</li>
+    <li>Manual review of output — does it look right? Is the frame selection close?</li>
+    <li>Decision gate: proceed to MVP or rethink the data pipeline</li>
+  </ul>
+</div>
+
+<div class="phases">
+  <div class="phase-card p1">
+    <h4>Phase 1</h4>
+    <div class="phase-name">MVP — The Full Loop</div>
+    <ul>
+      <li>Tauri desktop app, Windows</li>
+      <li>DXGI capture + ffmpeg H.264 CRF 18</li>
+      <li>Capture scope: full screen, window, or named window set (from Prepare)</li>
+      <li>OS hotkeys + system tray + Tauri HUD overlay</li>
+      <li>Full sidecar: element name + type + timestamp</li>
+      <li>Outline builder (Prepare workspace)</li>
+      <li>AI step detection + frame selection (Qwen 2.5 14B via Ollama)</li>
+      <li>Pre-launch quality analysis + re-shoot flags</li>
+      <li>Card-based storyboard editor (Create workspace)</li>
+      <li>Frame picker (±3s filmstrip)</li>
+      <li>Event-guided re-shoot replay</li>
+      <li>HTML + Markdown export</li>
+    </ul>
+  </div>
+  <div class="phase-card p2">
+    <h4>Phase 2</h4>
+    <div class="phase-name">Polish — Quality &amp; Connect</div>
+    <ul>
+      <li>Coverage gap detection (tabbed UIs)</li>
+      <li>Callout auto-detection from transcript</li>
+      <li>Frame annotation tools (arrows, boxes, highlights)</li>
+      <li>Keyboard shortcut callout rendering</li>
+      <li>Mouse click visualization on frames</li>
+      <li>Live guide preview panel</li>
+      <li>Publish to Google Drive</li>
+      <li>Publish to Notion</li>
+      <li>Asset library (reusable B-roll)</li>
+      <li>Branding / theming per project</li>
+    </ul>
+  </div>
+  <div class="phase-card p3">
+    <h4>Phase 3</h4>
+    <div class="phase-name">Expand — Platform &amp; Reach</div>
+    <ul>
+      <li>Guide version history + visual diff</li>
+      <li>macOS support</li>
+      <li>Additional cloud publish targets (Confluence, SharePoint, LMS)</li>
+      <li>Translation via local model</li>
+      <li>Video walkthrough export (auto-narrated)</li>
+      <li>Guide quality scoring + improvement suggestions</li>
+      <li>AI agent integration for full guide generation review loops</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Tech architecture -->
+<h1>Technical Architecture Notes</h1>
+
+<h2>Desktop Framework — <em>Tauri + Rust + React</em></h2>
+<p><strong>Decision: Tauri.</strong> Rust backend gives direct access to the Windows APIs needed (DXGI Desktop Duplication, UI Automation) without a native addon layer. The Tauri transparent frameless window handles the HUD without a custom overlay engine. React frontend keeps the UI layer familiar and fast to iterate on. No Electron — the memory overhead and process isolation don't justify themselves for a single-user local tool. Built solo + AI agents, so framework maturity and ecosystem size matter less than tight native OS access and low overhead.</p>
+
+<h2>Screen Capture + Encoding (Capture Workspace)</h2>
+<p>Frame acquisition uses <strong>DXGI Desktop Duplication API</strong> directly — the same path that OBS and the Windows Game Bar use. This is hardware-accelerated, zero-copy, and captures at full GPU composited output including hardware-rendered UI that GDI/BitBlt would miss. The captured frames are piped to <strong>ffmpeg</strong> for encoding. Default target: H.264 CRF 18 at 1920×1080, which produces excellent screenshot-quality frames without needing a fixed bitrate guess. For lower-powered machines, the CRF can be raised (lower quality, smaller file) or the resolution can be reduced to 1280×720 — both are configurable per project. If OBS is installed, its WebSocket API (v5) is a secondary option: the app can control OBS as the recording engine, inheriting OBS's mature scene management and hardware encoding support without reimplementing it.</p>
+
+<h2>On-Screen Controls (Capture Workspace)</h2>
+<p>No custom overlay control framework. Three OS-native mechanisms cover the full control surface: (1) <strong>Global hotkeys</strong> registered via the OS intercept keyboard shortcuts anywhere without window focus (Tauri's <code>tauri-plugin-global-shortcut</code> or Windows <code>RegisterHotKey</code> API from Rust). (2) <strong>System tray icon</strong> with context menu for record/pause/stop/status — zero visible chrome during recording. (3) The <strong>step HUD</strong> is a Tauri frameless window set <code>always_on_top: true</code> with a transparent background — minimal, draggable, outside the capture region. Total custom UI work for controls: roughly a tray menu and a small label component.</p>
+
+<h2>Event-Guided Re-Shoot Replay (Capture ← Create Loop)</h2>
+<p>The sidecar event log is a complete, timestamped sequence of every action taken during the recording session. When a card is flagged for re-shoot in Create, the app extracts the sub-sequence of events leading up to that step and constructs a replay plan. Replay is executed via the same Windows UI Automation API used to capture events — it can programmatically find UI elements by name and invoke them (click, focus, select) using <code>IUIAutomationInvokePattern</code> and related patterns. The user sees each pending action before it fires and can step through manually or approve the full sequence. This is not screen automation in the macro-recorder sense — it's targeted accessibility API calls to named UI elements, which are resilient to screen position changes and visual layout differences. After replay positions the user in the target state, the recording starts automatically and the new footage replaces the flagged frames.</p>
+
+<h2>Sidecar Event Capture — Minimum Viable Depth</h2>
+<p>Windows UI Automation API via Rust's <code>windows</code> crate. Minimum capture needed per event: <strong>element name</strong> (e.g., "Enroll Users"), <strong>control type</strong> (Button, Tab, ComboBox, etc.), and <strong>timestamp</strong>. That's it for MVP — enough for step detection, auto-drafted step text, and replay navigation. Full DOM hierarchy (parent chain, role tree) is not captured unless it's needed to disambiguate an element at replay time. Keyboard shortcut events: key + modifier + timestamp. Scroll events: direction + target element name + timestamp. No coordinates required — element names + control types give the replay system everything it needs to invoke the right target regardless of screen layout changes.</p>
+<p>Capture scope is set in Prepare: a specific browser tab, window title, process name, or a named collection of windows. If the user doesn't specify, full-screen capture is the fallback — but the Prepare workspace will prompt: "Recording everything will make step detection noisier. Can you specify which window(s) this workflow lives in?"</p>
+
+<h2>Local AI — <em>RTX 5080 · 16 GB VRAM · 32 GB RAM</em></h2>
+<p>Reference hardware: Lenovo with GeForce RTX 5080 (16 GB VRAM) and 32 GB system RAM. This is comfortably powerful for the workload. Two model roles:</p>
+<p><strong>Transcription:</strong> <code>whisper.cpp</code> running Whisper large-v3 directly (≈3 GB VRAM). Word-level timestamps enabled. Post-recording batch processing — no real-time constraint. On this hardware, a 10-minute recording transcribes in roughly 30–60 seconds.</p>
+<p><strong>Guide structuring:</strong> <strong>Qwen 2.5 14B</strong> (Q4_K_M quantization, ≈9 GB VRAM) via Ollama — fits cleanly in 16 GB alongside the OS and app, leaving headroom. Takes transcript + event log + outline, outputs structured step data as JSON. Qwen 2.5 14B outperforms Llama 3.1 8B on structured output tasks and instruction following. The model does not need to see video frames — the event log tells it what happened and the transcript tells it what was said. Guide assembly from the JSON is deterministic code, not model output. At Phase 3, if output quality needs to go higher, Qwen 2.5 32B (Q4 ≈ 20 GB, requires GPU+RAM offloading) or a Claude API call for the structuring step are both options.</p>
+
+<h2>Frame Selection Algorithm</h2>
+<p>The sidecar event log provides click timestamps. The best frame for a step is: <code>click_timestamp + 0.5s</code> — enough time for the UI to respond and render, before the user's hand has moved to the next action. Word-level transcript timestamps provide a secondary signal: <code>last_word_of_step_spoken + 0.3s</code>. The frame picker in the storyboard editor lets the user override either with a one-click filmstrip selection.</p>
+
+<h2>What Doesn't Need to Be in V1</h2>
+<p>No timeline editing, no video trimming, no transitions, no audio editing, no cloud sync, no multi-platform, no DOCX, no team features, no multi-user anything. The goal is a guide, not a production. Keep the scope tight until the solo dev loop (Prepare → Capture → Create → Publish) is fast and reliable end to end. HTML and Markdown are the only export targets that matter locally — everything else is a Phase 2+ cloud integration.</p>
+
+<!-- Differentiators -->
+<h1>Key Differentiators vs. Guidde / Scribe</h1>
+
+<div class="diff-box">
+  <strong>Why existing tools fail:</strong> Guidde and Scribe are fundamentally screenshot-captions tools. They capture "what was clicked" but have no model of "what was being accomplished." They can't distinguish between a navigation click (Step boundary) and a settings click (sub-action within a step). They can't detect that a five-tabbed settings panel needs five frames, not one. And they have no concept of recording quality — a mid-transition frame is used without question.
+</div>
+
+<ul>
+  <li><strong>Semantic step understanding</strong> — Uses transcript + event log together to understand intent, not just screen changes</li>
+  <li><strong>Sidecar data</strong> — UI element names from the OS mean step text is auto-drafted from actual button/label names, not guessed from screenshots</li>
+  <li><strong>Pre-launch quality analysis</strong> — Flags problems before the user sees the guide draft, not after they've been confused by a bad screenshot</li>
+  <li><strong>Event-guided re-shoot replay</strong> — The sidecar log is replayed to navigate the user back to the exact UI state needed for re-capture. Guidde and Scribe have no re-shoot concept at all; every correction is a full manual re-record.</li>
+  <li><strong>Four clear workspaces</strong> — Prepare / Capture / Create / Publish. Each workspace has a single purpose, distinct tools, and a clear entry/exit condition. Users know exactly where they are and what they're doing.</li>
+  <li><strong>Local / private</strong> — No video uploaded to a cloud service; everything runs on-device via Ollama</li>
+  <li><strong>Outline-driven</strong> — The guide structure is decided before recording, not reverse-engineered from what got captured</li>
+  <li><strong>Built on OS primitives</strong> — Recording controls (global hotkeys, system tray, native transparent window) use existing OS facilities. No custom overlay engine; no conflicts with the software being recorded.</li>
+</ul>
+
+<!-- Baked-in guidance -->
+<h1>Baked-In Guidance — No Cheatsheet Required</h1>
+
+<p>The recording best practices (narration phrasing, outline discipline, the four golden rules, the do/don't behaviors) currently live in a separate cheatsheet that the user opens on a second monitor. In the finished product, that knowledge is embedded in the experience at the right moment — through onboarding, contextual AI coaching, and pre-launch analysis. The cheatsheet becomes the <em>source of truth for training the system</em>, not a document the user reads.</p>
+
+<div class="diff-box">
+  <strong>Design principle:</strong> Every item on the recording cheatsheet should map to either (a) something the app prevents or automates away, (b) a contextual prompt that surfaces at the moment it's relevant, or (c) a pre-launch analysis flag that catches violations before the user moves to Create. If the user has to remember it, it's not in the product yet.
+</div>
+
+<table>
+  <thead><tr><th>Cheatsheet Item</th><th>How It's Embedded</th><th>When It Surfaces</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Narrate what you're doing, not just what you see</td>
+      <td>Onboarding training + real-time transcript confidence score shown in HUD</td>
+      <td>Capture — HUD shows low narration confidence warning</td>
+    </tr>
+    <tr>
+      <td>Pause between steps</td>
+      <td>Sidecar event log detects no-event gaps; step boundaries inferred from pauses</td>
+      <td>Create — AI uses pause detection as step boundary signal automatically</td>
+    </tr>
+    <tr>
+      <td>Name what you click ("click the Enroll Users button")</td>
+      <td>Onboarding coaching prompt + sidecar captures the element name regardless</td>
+      <td>Prepare onboarding; Create auto-drafts from element name even if not narrated</td>
+    </tr>
+    <tr>
+      <td>Complete each step fully before moving on</td>
+      <td>Pre-launch analysis flags frames where UI is mid-transition or hover state</td>
+      <td>Create — cards flagged for re-shoot before user reviews</td>
+    </tr>
+    <tr>
+      <td>Use the outline — know your steps before you record</td>
+      <td>Prepare workspace enforces outline before Capture is unlocked</td>
+      <td>Prepare — "Start Recording" button disabled until outline has ≥1 step</td>
+    </tr>
+    <tr>
+      <td>Flag uncertain moments in real time</td>
+      <td>Global hotkey for "flag this moment" adds a marker to sidecar log</td>
+      <td>Capture — single keypress; AI uses flags as re-shoot candidates in Create</td>
+    </tr>
+    <tr>
+      <td>Coverage clips for tabbed / complex UI</td>
+      <td>Coverage gap detection in Create; coverage clip recording is a first-class mode in Capture</td>
+      <td>Create — "X tabs detected, only 1 captured — add coverage?" prompt</td>
+    </tr>
+    <tr>
+      <td>Consistent recording resolution</td>
+      <td>Enforced per-project in configuration; recorder refuses to start if display resolution doesn't match</td>
+      <td>Capture — startup check before recording begins</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The cheatsheet exists today because the tool doesn't exist yet. Once it does, it becomes an internal reference for deciding what the AI should coach and what pre-launch analysis should flag — not a document the user ever reads.</p>
+
+<!-- Decisions -->
+<h1>Decisions</h1>
+
+<p style="font-size:13px; color:#666; margin: 0 0 14px;">Previously open questions — now closed.</p>
+
+<div class="decision">
+  <div class="d-label">App framework</div>
+  <div class="d-answer"><strong>Tauri + Rust + React.</strong> Direct access to DXGI and Windows UI Automation from Rust. Transparent frameless window for HUD. Small bundle. Solo developer + AI agents — no team hiring constraints.</div>
+</div>
+<div class="decision">
+  <div class="d-label">Sidecar capture depth</div>
+  <div class="d-answer"><strong>Minimum viable:</strong> element name + control type + timestamp per event. No DOM hierarchy. That's sufficient for step detection, auto-drafted step text, and replay navigation. Add depth only if disambiguation requires it.</div>
+</div>
+<div class="decision">
+  <div class="d-label">Local model</div>
+  <div class="d-answer"><strong>Whisper large-v3</strong> (whisper.cpp, ~3 GB VRAM) for transcription. <strong>Qwen 2.5 14B Q4_K_M</strong> (~9 GB VRAM) via Ollama for guide structuring. Reference machine: RTX 5080 16 GB VRAM + 32 GB RAM — comfortable headroom for both models simultaneously. Scale back for lesser hardware at Phase 3.</div>
+</div>
+<div class="decision">
+  <div class="d-label">Multi-application recording</div>
+  <div class="d-answer"><strong>Capture everything.</strong> Sidecar events work across all applications via Windows UI Automation — no browser-only limitation. In Prepare, the user specifies which window(s) or browser tab the workflow involves. If they skip it, full-screen capture is the fallback with a prompt to be more specific for cleaner step detection.</div>
+</div>
+<div class="decision">
+  <div class="d-label">Acme-specific vs. general</div>
+  <div class="d-answer"><strong>General-purpose tool.</strong> Used by a solo developer to document any platform or workflow. Acme is one use case among many — no Acme-specific logic is baked in. The guide produced for the Widget Mastery badge workflow could equally be produced for a Salesforce process, a Figma workflow, or a custom internal tool.</div>
+</div>
+<div class="decision">
+  <div class="d-label">Export format priority</div>
+  <div class="d-answer"><strong>HTML + Markdown locally, always.</strong> DOCX is not a priority — the audience doesn't need it and conversion adds complexity. Cloud publish (Google Drive, Notion) lands in Phase 2 via API integrations. HTML is self-contained and durable; Markdown keeps the text portable. Everything else is a Phase 2+ integration.</div>
+</div>
+<div class="decision">
+  <div class="d-label">Development model</div>
+  <div class="d-answer"><strong>Solo developer + AI agents.</strong> No human team. Design decisions optimize for one developer iterating fast with AI assistance — not for team onboarding, distributed development, or shared codebases. Complexity budgets are tight; third-party libraries that remove surface area are preferred over custom implementations.</div>
+</div>
+
+<div class="footer">
+  This document synthesizes ideas from the initial video-to-guide session and product ideation discussions (March 2026).
+  It is a living concept brief — vision and direction, not a technical specification. All implementation details are directional.
+</div>
+
+</body>
+</html>

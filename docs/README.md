@@ -13,6 +13,11 @@ Research, findings, and design work toward a proper CLI extension for Cap screen
 | [USE-CASES.md](./USE-CASES.md) | 13 generalized use cases for browser-driven recording workflows |
 | [REFACTOR-PLAN.md](./REFACTOR-PLAN.md) | Earlier refactor plan (superseded by DESIGN.md for architecture; still useful for phase staging) |
 | [MY-SETUP.md](./MY-SETUP.md) | Machine-specific reference — IPs, screen IDs, camera/mic names, tool paths |
+
+## Guide tool
+
+See [`../guide/README.md`](../guide/README.md) for the post-recording pipeline —
+turn `.cap` recordings into illustrated step-by-step guides/SOPs.
 | [scripts/README.md](./scripts/README.md) | Index of gathered reference scripts with source annotations |
 
 ## Context

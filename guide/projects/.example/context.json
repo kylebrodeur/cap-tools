@@ -1,0 +1,65 @@
+{
+  "_comment": "Per-project context. This is loaded into every Cowork session for this project.",
+
+  "name": "example-project",
+  "created": "2026-03-18T00:00:00",
+  "description": "One sentence: what this guide covers and who it's for.",
+
+  "platform": "Acme Learning Platform",
+  "audience": "LMS admins at partner organizations",
+  "audience_technical_level": "intermediate",
+
+  "known_terminology": {
+    "badge delivery activity": "The Page-type activity titled 'Widget Mastery Certification' — NOT the Survey version",
+    "evergreen letter": "The letter named 'Widget Mastery - Certification - Certificate Link (Evergreen)' that fires on enrollment",
+    "ws-ai-accelerator-certification": "The activity code for the badge delivery page"
+  },
+
+  "output_filename": "example-project-guide.html",
+
+  "parts": [
+    {
+      "id": "part1",
+      "title": "Activity Configuration & Setup",
+      "steps": 8,
+      "recording": "main-part1.mp4",
+      "transcript": "main-part1.json",
+      "status": "complete"
+    },
+    {
+      "id": "part2",
+      "title": "Enrolling Users",
+      "steps": 7,
+      "recording": "main-part2.mp4",
+      "transcript": "main-part2.json",
+      "status": "in_progress"
+    }
+  ],
+
+  "coverage_clips": [
+    {
+      "file": "properties-tabs.mp4",
+      "covers": "Properties tab — all 5 sub-tabs (General, Catalog, Enrollment, Gamification, Advanced)",
+      "used_in_part": "part1",
+      "status": "complete"
+    }
+  ],
+
+  "notes": [
+    "At ~0:18 in Part 1: KB note about activity code containing 'badge_delivery'",
+    "At ~3:13 in Part 2: note that individual enrollment is identical to group enrollment"
+  ],
+
+  "corrections_history": [
+    {
+      "date": "2026-03-11",
+      "description": "Gamification tab description incorrectly mentioned 'Enable Mark Complete Button' — removed. That setting does not exist in this tab.",
+      "affected_section": "Part 1, Step 3, Gamification row"
+    },
+    {
+      "date": "2026-03-11",
+      "description": "Advanced tab letter trigger was described as firing 'On Completion' — corrected to 'On Enrollment' per supplemental video.",
+      "affected_section": "Part 1, Step 3, Advanced row"
+    }
+  ]
+}

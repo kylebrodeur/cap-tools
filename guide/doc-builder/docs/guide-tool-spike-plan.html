@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide Tool — Spike Plan</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #222;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 40px 80px;
+    background: #fff;
+  }
+  .doc-title { font-size: 30px; font-weight: 700; color: #1A3A5C; margin: 0 0 4px; }
+  .doc-sub   { font-size: 14px; color: #888; margin: 0 0 6px; }
+  .doc-date  { font-size: 12px; color: #bbb; margin: 0 0 24px; }
+  hr.rule    { border: none; border-top: 4px solid #D4730A; margin: 0 0 36px; }
+  h1 { font-size: 20px; font-weight: 700; color: #1A3A5C; margin: 48px 0 10px; padding-bottom: 8px; border-bottom: 2px solid #D0DFF0; }
+  h2 { font-size: 15px; font-weight: 700; color: #2C5F8A; margin: 28px 0 8px; }
+  h3 { font-size: 13px; font-weight: 700; color: #444; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  p  { margin: 0 0 14px; color: #333; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; color: #333; }
+  li { margin-bottom: 5px; }
+  strong { color: #1A3A5C; }
+  code { background: #F0F5FB; border: 1px solid #D0DFF0; border-radius: 3px; padding: 1px 5px; font-size: 12px; font-family: 'Courier New', monospace; color: #1A3A5C; }
+  pre {
+    background: #1A1A2E;
+    color: #E8EAF6;
+    border-radius: 7px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.6;
+    margin: 0 0 18px;
+    font-family: 'Courier New', monospace;
+  }
+  pre .c  { color: #6A9955; }
+  pre .k  { color: #569CD6; }
+  pre .s  { color: #CE9178; }
+  pre .n  { color: #9CDCFE; }
+  pre .f  { color: #DCDCAA; }
+  pre .p  { color: #D4D4D4; }
+  pre .cmd { color: #4EC9B0; }
+
+  /* Goal callout */
+  .goal {
+    background: #FFF4E8;
+    border-left: 5px solid #D4730A;
+    border-radius: 0 8px 8px 0;
+    padding: 18px 22px;
+    margin: 0 0 32px;
+    font-size: 15px;
+    color: #4A2800;
+    line-height: 1.7;
+  }
+  .goal strong { color: #8B4000; }
+
+  /* Scope table */
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+  th { background: #1A3A5C; color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; }
+  td { padding: 8px 12px; border-bottom: 1px solid #E8EEF5; vertical-align: top; }
+  tr:nth-child(even) td { background: #F5F8FC; }
+  .yes { color: #1F7A45; font-weight: 700; }
+  .no  { color: #A0190D; font-weight: 700; }
+
+  /* Step sequence */
+  .steps { counter-reset: step-counter; margin: 0 0 20px; }
+  .step {
+    counter-increment: step-counter;
+    position: relative;
+    padding: 14px 16px 14px 52px;
+    margin-bottom: 10px;
+    background: #F5F8FC;
+    border: 1px solid #D0DFF0;
+    border-radius: 7px;
+  }
+  .step::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    width: 26px; height: 26px;
+    background: #1A3A5C;
+    color: #fff;
+    border-radius: 50%;
+    font-weight: 700;
+    font-size: 13px;
+    text-align: center;
+    line-height: 26px;
+  }
+  .step h4 { font-size: 14px; font-weight: 700; color: #1A3A5C; margin: 0 0 6px; }
+  .step p  { margin: 0 0 8px; font-size: 13px; }
+  .step p:last-child { margin: 0; }
+
+  /* Decision gate */
+  .gate {
+    background: #F0FFF4;
+    border: 2px solid #1F7A45;
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin: 24px 0;
+  }
+  .gate h3 { color: #1F7A45; margin: 0 0 10px; font-size: 14px; }
+  .gate ul  { margin: 0; }
+
+  /* Warn box */
+  .warn {
+    background: #FFF8E1;
+    border-left: 4px solid #E6C84A;
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 12px 0 20px;
+    font-size: 13px;
+    color: #4A3800;
+  }
+
+  /* File tree */
+  .tree {
+    background: #1A1A2E;
+    color: #9CDCFE;
+    border-radius: 7px;
+    padding: 14px 18px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    margin: 0 0 18px;
+  }
+  .tree .dir  { color: #DCDCAA; }
+  .tree .file { color: #E8EAF6; }
+  .tree .note { color: #6A9955; }
+
+  /* Origin note */
+  .origin {
+    background: #F5F0FF;
+    border-left: 4px solid #6B3FA0;
+    border-radius: 0 6px 6px 0;
+    padding: 12px 16px;
+    margin: 0 0 20px;
+    font-size: 13px;
+    color: #3A1A60;
+  }
+
+  .footer { margin-top: 60px; padding-top: 16px; border-top: 1px solid #E0E0E0; font-size: 12px; color: #999; font-style: italic; }
+</style>
+</head>
+<body>
+
+<p class="doc-title">Guide Tool — Spike Plan</p>
+<p class="doc-sub">Phase 0: Validate the data pipeline before building the app</p>
+<p class="doc-date">March 2026 &nbsp;·&nbsp; Solo dev + AI agents &nbsp;·&nbsp; Windows / RTX 5080</p>
+<hr class="rule">
+
+<!-- Goal -->
+<div class="goal">
+  <strong>The one question this spike answers:</strong> If you record a workflow with ffmpeg, capture click timestamps with a lightweight Python listener, and transcribe with Whisper — does the combined data produce a guide that's actually useful, with reasonable frames selected at reasonable moments? If yes, build the app. If no, figure out why and fix the data pipeline before writing a single line of Tauri.
+</div>
+
+<div class="origin">
+  <strong>Where this comes from:</strong> An earlier plan (PLAN.md) explored a Playwright-based approach — browser automation scripts that capture selectors, network calls, and technical metadata alongside a recording. That approach works for browser-only workflows and is still worth revisiting for a "technical sidecar" layer (see the product concept). The current spike takes a more general path: OS-level capture that works across all applications, not just browsers. The Playwright idea lives on as a future add-on for web workflows that need CSS selector and API call documentation.
+</div>
+
+<!-- Scope -->
+<h1>Spike Scope</h1>
+
+<table>
+  <thead><tr><th>In Scope</th><th>Out of Scope (Phase 1+)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="yes">✓ ffmpeg screen recording (gdigrab)</td>
+      <td class="no">✗ DXGI Desktop Duplication (proper capture API)</td>
+    </tr>
+    <tr>
+      <td class="yes">✓ pynput global click listener (timestamp + position)</td>
+      <td class="no">✗ Windows UI Automation (element names)</td>
+    </tr>
+    <tr>
+      <td class="yes">✓ Whisper word-level transcript (existing tool)</td>
+      <td class="no">✗ Real-time transcription during recording</td>
+    </tr>
+    <tr>
+      <td class="yes">✓ Frame extraction at click+0.5s (ffmpeg -ss)</td>
+      <td class="no">✗ AI frame selection / quality analysis</td>
+    </tr>
+    <tr>
+      <td class="yes">✓ Naive HTML guide assembly (transcript + frames)</td>
+      <td class="no">✗ Storyboard editor, card UI, frame picker</td>
+    </tr>
+    <tr>
+      <td class="yes">✓ CLI start/stop (hotkey or manual)</td>
+      <td class="no">✗ Tauri app, HUD overlay, system tray</td>
+    </tr>
+    <tr>
+      <td class="yes">✓ Output: MP4 + events.json + transcript.json + guide.html</td>
+      <td class="no">✗ Ollama / AI structuring / step detection</td>
+    </tr>
+    <tr>
+      <td class="yes">✓ Manual review of output quality</td>
+      <td class="no">✗ Re-shoot loop, UACS, MCP server</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="warn">
+  The spike uses <code>gdigrab</code> (GDI screen capture) not DXGI. GDI is simpler to set up and sufficient for validating frame quality — it will miss hardware-rendered frames on some GPU-accelerated apps. That's known and acceptable for the spike. DXGI is the right call for the full app; we just don't need it to answer the spike's question.
+</div>
+
+<!-- Tech stack -->
+<h1>Spike Tech Stack</h1>
+
+<p>Three Python scripts, no app framework, no build system. Dependencies are minimal and installable in one command.</p>
+
+<pre><span class="cmd">uv add ffmpeg-python pynput jinja2</span>
+<span class="c"># ffmpeg binary must be on PATH separately (winget install ffmpeg)</span></pre>
+
+<table>
+  <thead><tr><th>Component</th><th>Tool</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Screen capture</strong></td><td>ffmpeg gdigrab</td><td>Zero setup. Ships with ffmpeg. Good enough for validation.</td></tr>
+    <tr><td><strong>Click capture</strong></td><td>pynput</td><td>Global mouse listener, no admin rights required, pure Python.</td></tr>
+    <tr><td><strong>Transcription</strong></td><td>Existing Whisper tool</td><td>Already working. Just consume the JSON output.</td></tr>
+    <tr><td><strong>Frame extraction</strong></td><td>ffmpeg -ss</td><td>Precise timestamp-based extraction, one command per frame.</td></tr>
+    <tr><td><strong>Guide assembly</strong></td><td>Python + Jinja2</td><td>Simple templating. We already have a proven HTML template.</td></tr>
+  </tbody>
+</table>
+
+<!-- Output structure -->
+<h1>Spike Output Structure</h1>
+
+<div class="tree">
+<span class="dir">spike-output/</span><br>
+&nbsp;&nbsp;<span class="dir">recording/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">recording.mp4</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># raw screen recording</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">events.json</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># click timestamps [{"t": 4.2, "x": 840, "y": 320}, ...]</span><br>
+&nbsp;&nbsp;<span class="dir">transcript/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">transcript.json</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># Whisper output with word-level timestamps</span><br>
+&nbsp;&nbsp;<span class="dir">frames/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">step_01_t4.7.jpg</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># click at 4.2s + 0.5s = frame at 4.7s</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">step_02_t11.3.jpg</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">...</span><br>
+&nbsp;&nbsp;<span class="dir">output/</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="file">guide.html</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="note"># assembled guide, self-contained, base64 images</span>
+</div>
+
+<!-- Build sequence -->
+<h1>Build Sequence</h1>
+
+<div class="steps">
+
+  <div class="step">
+    <h4>Script 1 — <code>record.py</code>: Capture screen + click events simultaneously</h4>
+    <p>Run two things in parallel: ffmpeg (screen recording) and pynput (click listener). Both start when the user presses Enter and stop when they press Enter again. Events are written to <code>events.json</code> with timestamps relative to recording start.</p>
+<pre><span class="c">#!/usr/bin/env python3</span>
+<span class="c"># record.py — start/stop recording and click capture</span>
+<span class="k">import</span> <span class="n">subprocess</span>, <span class="n">json</span>, <span class="n">time</span>, <span class="n">threading</span>, <span class="n">sys</span>
+<span class="k">from</span> <span class="n">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+<span class="k">from</span> <span class="n">pynput</span> <span class="k">import</span> <span class="n">mouse</span>
+<span class="k">from</span> <span class="n">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+
+<span class="n">OUT</span> = <span class="n">Path</span>(<span class="s">"spike-output/recording"</span>)
+<span class="n">OUT</span>.<span class="f">mkdir</span>(<span class="n">parents</span>=<span class="k">True</span>, <span class="n">exist_ok</span>=<span class="k">True</span>)
+
+<span class="n">events</span> = []
+<span class="n">start_time</span> = <span class="k">None</span>
+<span class="n">recording</span> = <span class="k">False</span>
+
+<span class="k">def</span> <span class="f">on_click</span>(<span class="n">x</span>, <span class="n">y</span>, <span class="n">button</span>, <span class="n">pressed</span>):
+    <span class="k">if</span> <span class="n">pressed</span> <span class="k">and</span> <span class="n">recording</span>:
+        <span class="n">events</span>.<span class="f">append</span>({<span class="s">"t"</span>: <span class="n">round</span>(<span class="n">time</span>.<span class="f">time</span>() - <span class="n">start_time</span>, <span class="n">3</span>), <span class="s">"x"</span>: <span class="n">x</span>, <span class="s">"y"</span>: <span class="n">y</span>})
+
+<span class="c"># Start click listener in background</span>
+<span class="n">listener</span> = <span class="n">mouse</span>.<span class="f">Listener</span>(<span class="n">on_click</span>=<span class="n">on_click</span>)
+<span class="n">listener</span>.<span class="f">start</span>()
+
+<span class="f">input</span>(<span class="s">"Press Enter to START recording..."</span>)
+<span class="n">start_time</span> = <span class="n">time</span>.<span class="f">time</span>()
+<span class="n">recording</span> = <span class="k">True</span>
+<span class="n">outfile</span> = <span class="n">OUT</span> / <span class="s">"recording.mp4"</span>
+<span class="f">print</span>(<span class="s">f"⏺  Recording → {outfile}"</span>)
+
+<span class="c"># ffmpeg: gdigrab (GDI screen capture), 30fps, H.264 CRF 18</span>
+<span class="n">ffmpeg</span> = <span class="n">subprocess</span>.<span class="f">Popen</span>([
+    <span class="s">"ffmpeg"</span>, <span class="s">"-f"</span>, <span class="s">"gdigrab"</span>, <span class="s">"-framerate"</span>, <span class="s">"30"</span>,
+    <span class="s">"-i"</span>, <span class="s">"desktop"</span>,
+    <span class="s">"-c:v"</span>, <span class="s">"libx264"</span>, <span class="s">"-crf"</span>, <span class="s">"18"</span>, <span class="s">"-preset"</span>, <span class="s">"fast"</span>,
+    <span class="s">"-pix_fmt"</span>, <span class="s">"yuv420p"</span>,
+    <span class="f">str</span>(<span class="n">outfile</span>)
+], <span class="n">stdin</span>=<span class="n">subprocess</span>.<span class="n">PIPE</span>)
+
+<span class="f">input</span>(<span class="s">"Press Enter to STOP recording..."</span>)
+<span class="n">recording</span> = <span class="k">False</span>
+<span class="n">ffmpeg</span>.<span class="n">stdin</span>.<span class="f">write</span>(<span class="s">b"q"</span>)  <span class="c"># graceful ffmpeg stop</span>
+<span class="n">ffmpeg</span>.<span class="f">wait</span>()
+<span class="n">listener</span>.<span class="f">stop</span>()
+
+<span class="n">events_file</span> = <span class="n">OUT</span> / <span class="s">"events.json"</span>
+<span class="n">events_file</span>.<span class="f">write_text</span>(<span class="n">json</span>.<span class="f">dumps</span>(<span class="n">events</span>, <span class="n">indent</span>=<span class="n">2</span>))
+<span class="f">print</span>(<span class="s">f"✅ Recorded {len(events)} clicks → {events_file}"</span>)
+<span class="f">print</span>(<span class="s">f"   Now transcribe: whisper recording.mp4 --output-format json"</span>)</pre>
+  </div>
+
+  <div class="step">
+    <h4>Transcription — use your existing Whisper tool</h4>
+    <p>Run your Whisper tool on <code>spike-output/recording/recording.mp4</code>. Copy the output JSON into <code>spike-output/transcript/transcript.json</code>. The spike consumes whatever your Whisper tool produces — word-level timestamps are ideal but segment-level works too. Format: <code>{"segments": [{"start": 0.0, "end": 3.2, "text": "..."}, ...]}</code>.</p>
+    <p>If you have whisper.cpp installed, the command is: <code>./main -m models/ggml-large-v3.bin --output-json -f recording.mp4</code></p>
+  </div>
+
+  <div class="step">
+    <h4>Script 2 — <code>extract_frames.py</code>: Pull a frame for each click event</h4>
+    <p>For every click at time <em>T</em>, extract the frame at <em>T + 0.5s</em> using ffmpeg's <code>-ss</code> seek. The 0.5s offset is the hypothesis: the UI has responded and rendered, but the user hasn't moved to the next action yet. This is the core assumption the spike is testing.</p>
+<pre><span class="c">#!/usr/bin/env python3</span>
+<span class="c"># extract_frames.py — pull frames at click+0.5s from recording</span>
+<span class="k">import</span> <span class="n">json</span>, <span class="n">subprocess</span>
+<span class="k">from</span> <span class="n">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+
+<span class="n">RECORDING</span> = <span class="n">Path</span>(<span class="s">"spike-output/recording/recording.mp4"</span>)
+<span class="n">EVENTS</span>    = <span class="n">Path</span>(<span class="s">"spike-output/recording/events.json"</span>)
+<span class="n">FRAMES</span>    = <span class="n">Path</span>(<span class="s">"spike-output/frames"</span>)
+<span class="n">FRAMES</span>.<span class="f">mkdir</span>(<span class="n">parents</span>=<span class="k">True</span>, <span class="n">exist_ok</span>=<span class="k">True</span>)
+
+<span class="n">OFFSET</span> = <span class="n">0.5</span>  <span class="c"># seconds after click to capture frame</span>
+<span class="n">events</span> = <span class="n">json</span>.<span class="f">loads</span>(<span class="n">EVENTS</span>.<span class="f">read_text</span>())
+
+<span class="k">for</span> <span class="n">i</span>, <span class="n">ev</span> <span class="k">in</span> <span class="f">enumerate</span>(<span class="n">events</span>, <span class="n">1</span>):
+    <span class="n">t</span> = <span class="n">ev</span>[<span class="s">"t"</span>] + <span class="n">OFFSET</span>
+    <span class="n">out</span> = <span class="n">FRAMES</span> / <span class="s">f"step_{i:02d}_t{t:.1f}.jpg"</span>
+    <span class="n">subprocess</span>.<span class="f">run</span>([
+        <span class="s">"ffmpeg"</span>, <span class="s">"-ss"</span>, <span class="f">str</span>(<span class="n">t</span>),
+        <span class="s">"-i"</span>, <span class="f">str</span>(<span class="n">RECORDING</span>),
+        <span class="s">"-vframes"</span>, <span class="s">"1"</span>,
+        <span class="s">"-q:v"</span>, <span class="s">"2"</span>,  <span class="c"># JPEG quality 2 = very high</span>
+        <span class="s">"-y"</span>, <span class="f">str</span>(<span class="n">out</span>)
+    ], <span class="n">capture_output</span>=<span class="k">True</span>)
+    <span class="f">print</span>(<span class="s">f"  Frame {i:02d}: click at {ev['t']:.1f}s → captured at {t:.1f}s"</span>)
+
+<span class="f">print</span>(<span class="s">f"\n✅ {len(events)} frames extracted → spike-output/frames/"</span>)</pre>
+  </div>
+
+  <div class="step">
+    <h4>Script 3 — <code>assemble.py</code>: Generate the guide from all collected data</h4>
+    <p>Combines click events + transcript + frames into an HTML guide. For each click, finds the nearest transcript segment and pairs it with the extracted frame. No AI involved — this is pure data joining on timestamps. The output reuses the proven HTML template structure from the existing guide work.</p>
+<pre><span class="c">#!/usr/bin/env python3</span>
+<span class="c"># assemble.py — build HTML guide from events + transcript + frames</span>
+<span class="k">import</span> <span class="n">json</span>, <span class="n">base64</span>
+<span class="k">from</span> <span class="n">pathlib</span> <span class="k">import</span> <span class="n">Path</span>
+
+<span class="n">EVENTS</span>     = <span class="n">Path</span>(<span class="s">"spike-output/recording/events.json"</span>)
+<span class="n">TRANSCRIPT</span> = <span class="n">Path</span>(<span class="s">"spike-output/transcript/transcript.json"</span>)
+<span class="n">FRAMES</span>     = <span class="n">Path</span>(<span class="s">"spike-output/frames"</span>)
+<span class="n">OUTPUT</span>     = <span class="n">Path</span>(<span class="s">"spike-output/output/guide.html"</span>)
+<span class="n">OUTPUT</span>.<span class="n">parent</span>.<span class="f">mkdir</span>(<span class="n">parents</span>=<span class="k">True</span>, <span class="n">exist_ok</span>=<span class="k">True</span>)
+
+<span class="n">events</span>     = <span class="n">json</span>.<span class="f">loads</span>(<span class="n">EVENTS</span>.<span class="f">read_text</span>())
+<span class="n">transcript</span> = <span class="n">json</span>.<span class="f">loads</span>(<span class="n">TRANSCRIPT</span>.<span class="f">read_text</span>())
+<span class="n">segments</span>   = <span class="n">transcript</span>.<span class="f">get</span>(<span class="s">"segments"</span>, <span class="n">transcript</span> <span class="k">if</span> <span class="f">isinstance</span>(<span class="n">transcript</span>, <span class="f">list</span>) <span class="k">else</span> [])
+
+<span class="k">def</span> <span class="f">nearest_segment</span>(<span class="n">t</span>):
+    <span class="c">"""Find transcript segment closest to timestamp t."""</span>
+    <span class="k">if</span> <span class="k">not</span> <span class="n">segments</span>: <span class="k">return</span> <span class="s">""</span>
+    <span class="k">return</span> <span class="f">min</span>(<span class="n">segments</span>, <span class="n">key</span>=<span class="k">lambda</span> <span class="n">s</span>: <span class="f">abs</span>(<span class="n">s</span>[<span class="s">"start"</span>] - <span class="n">t</span>))[<span class="s">"text"</span>].<span class="f">strip</span>()
+
+<span class="k">def</span> <span class="f">b64</span>(<span class="n">path</span>):
+    <span class="k">return</span> <span class="s">f"data:image/jpeg;base64,{base64.b64encode(Path(path).read_bytes()).decode()}"</span>
+
+<span class="c"># Build steps: pair each click with its frame + nearest transcript text</span>
+<span class="n">steps</span> = []
+<span class="k">for</span> <span class="n">i</span>, <span class="n">ev</span> <span class="k">in</span> <span class="f">enumerate</span>(<span class="n">events</span>, <span class="n">1</span>):
+    <span class="n">frame_files</span> = <span class="f">sorted</span>(<span class="n">FRAMES</span>.<span class="f">glob</span>(<span class="s">f"step_{i:02d}_*.jpg"</span>))
+    <span class="k">if</span> <span class="k">not</span> <span class="n">frame_files</span>: <span class="k">continue</span>
+    <span class="n">steps</span>.<span class="f">append</span>({
+        <span class="s">"num"</span>:     <span class="n">i</span>,
+        <span class="s">"t"</span>:       <span class="n">ev</span>[<span class="s">"t"</span>],
+        <span class="s">"text"</span>:    <span class="f">nearest_segment</span>(<span class="n">ev</span>[<span class="s">"t"</span>]) <span class="k">or</span> <span class="s">f"Step {i} (no transcript)"</span>,
+        <span class="s">"img_b64"</span>: <span class="f">b64</span>(<span class="n">frame_files</span>[<span class="n">0</span>]),
+    })
+
+<span class="c"># Generate HTML (using the proven base64-embedded template)</span>
+<span class="n">step_html</span> = <span class="s">""</span>
+<span class="k">for</span> <span class="n">s</span> <span class="k">in</span> <span class="n">steps</span>:
+    <span class="n">step_html</span> += <span class="s">f"""
+    &lt;div class="step-card"&gt;
+      &lt;div class="step-num"&gt;Step {s['num']}&lt;/div&gt;
+      &lt;p class="step-text"&gt;{s['text']}&lt;/p&gt;
+      &lt;img class="screenshot" src="{s['img_b64']}" alt="Step {s['num']}"&gt;
+    &lt;/div&gt;"""</span>
+
+<span class="n">html</span> = <span class="s">f"""&lt;!DOCTYPE html&gt;&lt;html&gt;&lt;head&gt;&lt;meta charset="UTF-8"&gt;
+&lt;style&gt;
+  body {{ font-family: Arial, sans-serif; max-width: 820px; margin: 40px auto; padding: 0 20px; }}
+  .step-card {{ border: 1px solid #D0DFF0; border-radius: 8px; padding: 18px 20px; margin: 0 0 20px; }}
+  .step-num  {{ font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; margin: 0 0 6px; }}
+  .step-text {{ font-size: 14px; color: #222; margin: 0 0 14px; }}
+  .screenshot {{ max-width: 100%; border: 1px solid #ddd; border-radius: 4px; }}
+&lt;/style&gt;&lt;/head&gt;&lt;body&gt;
+&lt;h1&gt;Spike Guide Output&lt;/h1&gt;
+&lt;p style="color:#888"&gt;{len(steps)} steps · generated from events.json + transcript.json + frames/&lt;/p&gt;
+{step_html}
+&lt;/body&gt;&lt;/html&gt;"""</span>
+
+<span class="n">OUTPUT</span>.<span class="f">write_text</span>(<span class="n">html</span>)
+<span class="f">print</span>(<span class="s">f"✅ Guide written → {OUTPUT}  ({len(steps)} steps)"</span>)</pre>
+  </div>
+
+  <div class="step">
+    <h4>Review the output — manually assess quality</h4>
+    <p>Open <code>spike-output/output/guide.html</code> in a browser. For each step, answer three questions:</p>
+    <ul>
+      <li>Is the frame showing the right UI state? (Not mid-transition, not hover, not wrong screen)</li>
+      <li>Does the transcript text roughly describe what's happening in that frame?</li>
+      <li>Are the step boundaries in the right places, or are there too many / too few clicks captured?</li>
+    </ul>
+    <p>You are the reviewer. There's no automated scoring yet — the point is to look at it with your own eyes and decide if the data pipeline is producing something worth building on.</p>
+  </div>
+
+</div>
+
+<!-- Decision gate -->
+<div class="gate">
+  <h3>✅ Decision Gate — Go / No-Go</h3>
+  <p><strong>Go if:</strong></p>
+  <ul>
+    <li>≥ 70% of frames show the right UI state (the rest can be fixed with the storyboard editor in Phase 1)</li>
+    <li>Transcript text roughly tracks the steps (not perfectly, just directionally)</li>
+    <li>The output looks like a rough draft of a guide — someone unfamiliar with the workflow could follow it with some effort</li>
+  </ul>
+  <p style="margin-top:12px"><strong>No-Go if:</strong></p>
+  <ul>
+    <li>Frames are consistently wrong (hover states, mid-transitions, wrong screen entirely)</li>
+    <li>Transcript timing is so far off it can't be correlated to clicks at all</li>
+    <li>The click density is so high (every mouse move captured) that filtering is impossible</li>
+  </ul>
+  <p style="margin-top:12px; font-size:13px; color:#444;"><strong>Most likely outcome:</strong> Some frames are good, some aren't. The frame picker in Phase 1 exists precisely to fix the bad ones. The spike doesn't need perfect — it needs "good enough to build on." The question is whether the good frames are good enough that a human reviewer would only need to swap maybe 20–30% of them. If it's 80%, that's a pipeline problem, not a UI problem.</p>
+</div>
+
+<!-- What already exists -->
+<h1>What Already Exists</h1>
+
+<p>These are not things the spike needs to rebuild. They're the context and tooling already available:</p>
+
+<table>
+  <thead><tr><th>Asset</th><th>Location</th><th>Role in Spike</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>guide.py CLI</strong></td>
+      <td><code>guide-tool/guide.py</code></td>
+      <td>Project management, UACS sync, session notes. Not directly used in the spike pipeline but keeps context organized.</td>
+    </tr>
+    <tr>
+      <td><strong>mcp_server.py</strong></td>
+      <td><code>guide-tool/mcp_server.py</code></td>
+      <td>MCP tools for querying project state from Claude. Run alongside UACS for context-aware AI assistance during development.</td>
+    </tr>
+    <tr>
+      <td><strong>video-to-html-guide skill</strong></td>
+      <td><code>.claude/skills/video-to-html-guide/</code></td>
+      <td>The manual workflow this spike automates. The Widget Mastery badge guide was built with this — it's proof the frame+transcript approach produces good guides when done manually.</td>
+    </tr>
+    <tr>
+      <td><strong>extract_frames.py</strong></td>
+      <td><code>video-to-html-guide/scripts/</code></td>
+      <td>Reference implementation for ffmpeg frame extraction. The spike's extract_frames.py is a simplified version of this.</td>
+    </tr>
+    <tr>
+      <td><strong>html_builder_template.py</strong></td>
+      <td><code>video-to-html-guide/scripts/</code></td>
+      <td>Full HTML template with CSS. The spike uses a simplified inline version; Phase 1 will use this full template.</td>
+    </tr>
+    <tr>
+      <td><strong>AI Accelerator guide</strong></td>
+      <td><code>SOPs/AI-Accelerator-Badge-Delivery-Guide.html</code></td>
+      <td>The gold standard output. Compare spike output against this to calibrate quality expectations.</td>
+    </tr>
+    <tr>
+      <td><strong>Transcript format spec</strong></td>
+      <td><code>SOPs/transcript-format-recommendations.md</code></td>
+      <td>Defines the expected JSON format your Whisper tool should produce. The spike's assemble.py handles both segment-level and word-level timestamps.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- What to test first -->
+<h1>What Workflow to Record First</h1>
+
+<p>Pick something you know well and can describe while doing it. The spike recording should be 3–8 minutes — long enough to get 15–25 click events but short enough to iterate quickly if something doesn't work.</p>
+
+<p><strong>Good spike candidates:</strong></p>
+<ul>
+  <li>The Acme Widget Mastery badge delivery workflow — you've already done this manually, you know what the output should look like, and you have the gold standard HTML to compare against</li>
+  <li>Any other 5–10 step admin workflow in a tool you use regularly</li>
+</ul>
+
+<p><strong>Avoid for the spike:</strong></p>
+<ul>
+  <li>Workflows with a lot of typing (typing generates many non-meaningful events)</li>
+  <li>Workflows that involve hover-heavy menus (hover state frames are the main thing to validate/filter)</li>
+  <li>Anything longer than 10 minutes (too much to review in one spike session)</li>
+</ul>
+
+<div class="warn">
+  <strong>Recording tip for the spike:</strong> Narrate every action clearly while you do it — "I'm clicking the Settings tab" — and pause for about 1 second after each significant action before moving the mouse. The pause gives the UI time to render before the click+0.5s frame is captured. This isn't a requirement of the system but it makes the spike frames significantly better and removes one variable from the validation.
+</div>
+
+<!-- Connection to Playwright plan -->
+<h1>Connection to the Playwright Plan (PLAN.md)</h1>
+
+<p>The earlier plan in PLAN.md described a Playwright-based approach: browser automation scripts that capture CSS selectors, network traffic, API calls, and console logs alongside a recording. That plan was oriented around technical documentation — giving developers the exact selectors and API endpoints they'd need, not just a narrative guide.</p>
+
+<p>The current approach supersedes it for general recording (works across all apps, not just browsers) but the Playwright insight is still valuable as a future layer:</p>
+
+<table>
+  <thead><tr><th></th><th>Windows UI Automation sidecar</th><th>Playwright sidecar (future)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Works on</strong></td>
+      <td>All Windows apps + browsers</td>
+      <td>Browser tabs only</td>
+    </tr>
+    <tr>
+      <td><strong>Captures</strong></td>
+      <td>Element name, control type, timestamp</td>
+      <td>CSS selector, XPath, network calls, API responses, console logs</td>
+    </tr>
+    <tr>
+      <td><strong>Good for</strong></td>
+      <td>User guides — "click the Enroll Users button"</td>
+      <td>Technical docs — <code>POST /api/enrollments → 201</code>, <code>button[data-testid="enroll"]</code></td>
+    </tr>
+    <tr>
+      <td><strong>Phase</strong></td>
+      <td>Phase 1 (MVP)</td>
+      <td>Phase 2+ optional layer</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>In Phase 2, for browser-specific workflows, both sidecars can run simultaneously. The guide output would have two views: a <strong>User Guide</strong> (clean steps for non-technical audiences) and a <strong>Technical Reference</strong> (selectors + network data for developers). That's a real differentiator that no current tool offers.</p>
+
+<p>The PLAN.md also proposed auto-generating Playwright test scripts from captured workflows — this is still a valid Phase 3 idea. The sidecar event log is essentially a workflow recording; with element names from UI Automation and selectors from Playwright, you have enough data to generate a runnable test.</p>
+
+<!-- Immediate next actions -->
+<h1>Immediate Next Actions</h1>
+
+<ol>
+  <li><strong>Create spike project:</strong> <code>uv run guide.py new spike-pipeline-test</code> — gives you the folder structure and session tracking</li>
+  <li><strong>Install dependencies:</strong> <code>uv add pynput jinja2</code> — ffmpeg must be on PATH (<code>winget install ffmpeg</code>)</li>
+  <li><strong>Write record.py, extract_frames.py, assemble.py</strong> — code is above, copy and run</li>
+  <li><strong>Pick a 5–8 minute workflow</strong> — the Acme badge delivery workflow is the obvious first choice</li>
+  <li><strong>Record it, transcribe it, assemble it</strong> — compare output against the manually-produced AI Accelerator guide</li>
+  <li><strong>Make the Go/No-Go call</strong> — then open Cowork and start Phase 1</li>
+</ol>
+
+<div class="footer">
+  Spike plan synthesized from the guide-tool product concept (March 2026), the earlier PLAN.md Playwright approach, and the full conversation context.
+  This document is the bridge between vision and first line of code.
+</div>
+
+</body>
+</html>

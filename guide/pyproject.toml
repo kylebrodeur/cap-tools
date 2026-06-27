@@ -1,0 +1,35 @@
+[project]
+name = "guide-tool"
+version = "0.1.0"
+description = "Personal CLI for screen-recording guide creation"
+requires-python = ">=3.10"
+dependencies = [
+    "rich>=13.0",
+    "mcp>=1.0",
+    "pynput>=1.8.1",
+    "jinja2>=3.1.6",
+]
+
+[project.scripts]
+guide = "guide:main"
+
+[tool.uv]
+dev-dependencies = []
+
+# ── How to run ──────────────────────────────────────────────────────────────
+# No install needed. Just:
+#   uv run guide.py <command>
+#
+# Or if you want the `guide` command globally:
+#   uv tool install .
+#   guide <command>
+#
+# Scripts with inline dependencies (no project context needed):
+#   uv run --script scripts/extract_frames.py
+#   uv run --script scripts/html_builder_template.py
+#
+# MCP server:
+#   uv run --script mcp_server.py
+#
+# Or via pyproject context (picks up mcp dependency):
+#   uv run mcp_server.py

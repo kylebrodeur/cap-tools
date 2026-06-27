@@ -1,0 +1,28 @@
+{
+  "_comment": "Session log. Auto-updated by guide.py. Also manually editable.",
+
+  "date": "2026-03-18",
+  "started": "2026-03-18T10:00:00",
+  "last_updated": "2026-03-18T14:30:00",
+
+  "focus": "Correct Properties tab screenshots using supplemental video",
+
+  "completed": [
+    "Extracted 16 frames from private-page-settings.mp4 (every 2s)",
+    "Reviewed all frames — identified correct content per tab",
+    "Updated build.py with corrected img keys and descriptions",
+    "Regenerated HTML guide (4.2 MB)"
+  ],
+
+  "pending": [
+    "User review of updated guide in VSCode",
+    "Confirm Gamification tab description is accurate"
+  ],
+
+  "re_shoot_requests": [],
+
+  "notes": [
+    {"time": "2026-03-18T11:15:00", "text": "Gamification tab shows Credentials section — no 'Enable Mark Complete' button exists here. Description corrected."},
+    {"time": "2026-03-18T12:00:00", "text": "Letter trigger fires On Enrollment (not On Completion as previously described). Fixed."}
+  ]
+}

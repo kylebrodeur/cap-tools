@@ -1,0 +1,40 @@
+{
+  "_comment": "Global preferences applied to every project. Edit this file to set your defaults.",
+
+  "author": "Kyle",
+  "organization": "U of Digital",
+
+  "branding": {
+    "primary_color": "#1A3A5C",
+    "accent_color": "#2980B9",
+    "logo_path": "",
+    "footer_text": "Questions? Reach out in the team channel."
+  },
+
+  "output": {
+    "default_format": "html",
+    "include_summary": true,
+    "include_footer": true
+  },
+
+  "recording": {
+    "preferred_resolution": "1500x988",
+    "frame_pause_seconds": 2,
+    "ffmpeg_quality": 2
+  },
+
+  "ai": {
+    "ollama_endpoint": "http://localhost:11434",
+    "transcription_model": "whisper",
+    "guide_model": "llama3.1",
+    "word_level_timestamps": true
+  },
+
+  "style_preferences": [
+    "Use bold for UI element names (buttons, tabs, field labels)",
+    "Use em for values the user types or selects",
+    "Step text should be imperative: 'Click X' not 'You should click X'",
+    "Warn callouts for things that can cause mistakes; tip callouts for shortcuts or alternatives",
+    "Keep step count under 10 per part — split into new parts if longer"
+  ]
+}
