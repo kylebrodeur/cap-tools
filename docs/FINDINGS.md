@@ -563,3 +563,39 @@ tailscale serve --bg http://localhost:<port>
 For recording purposes Tailscale is only needed when the target app itself
 requires HTTPS. A plain Gradio app, Next.js dev server, or static site works
 fine over HTTP with `wsl.localhost`.
+
+---
+
+## 21. WSLg X11 + Chrome = unstable — confirmed by a companion project
+
+**Source:** a companion project `SESSION-LEARNINGS-2026-06-26.md` §11 (updated 2026-06-27)
+
+The a companion project team tested WSLg Chrome and confirmed: **"NEVER run
+Playwright/Chrome from WSL — crashes every time (WSLg X11 + Chrome =
+unstable)."** This validates the architecture decision: browser always runs
+on Windows, never from WSL.
+
+Additionally:
+- **`wsl.localhost` DNS does NOT resolve in Windows Playwright** — use
+  `http://127.0.0.1:<port>` or the WSL IP directly from Windows-side code
+- **`npx playwright` not in PATH when invoked via `powershell.exe` from WSL**
+  — use explicit paths or Python Playwright instead
+- **Stale ms-playwright Chrome processes cause CDP port conflicts** — always
+  kill Chrome after a recording session
+
+### CDP monitoring pattern (REST works, WebSocket doesn't)
+
+From WSL, the CDP REST API is reachable for monitoring:
+```bash
+curl -s http://<gateway-ip>:9222/json | python3 -c "import sys,json; t=json.load(sys.stdin); print(t[0].get('url','?')[:100])"
+```
+This polls the current page URL — useful for verifying the beat-runner is
+on the right page. WebSocket connections still fail (Windows Defender).
+
+### Sync pattern for Windows-side code
+
+When the Windows-side runner needs updated files from WSL:
+```bash
+cp ~/projects/cap-tools/win/beat_runner.py /mnt/c/cap-tools/
+```
+This is the same pattern a companion project uses for test files.

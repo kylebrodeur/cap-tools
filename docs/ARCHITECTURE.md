@@ -163,9 +163,11 @@ node beat-runner.js --check
    beat-runner writes to `C:\recordings\`; WSL reads from `/mnt/c/recordings/`.
    This is the same pattern a companion project used — it works.
 
-3. **`wsl.localhost` for the target URL:** the beat-runner on Windows uses
-   `http://wsl.localhost:<port>` to reach WSL-hosted apps. Works without
-   `netsh portproxy` in most cases. Fall back to `netsh` or WSL IP if needed.
+3. **`wsl.localhost` for the target URL:** `wsl.localhost` does NOT resolve
+   in Windows Playwright (confirmed by a companion project §11). The beat-runner on
+   Windows must use `http://127.0.0.1:<port>` (if netsh portproxy is set up)
+   or the WSL IP directly. For WSL-hosted apps, set up a one-time netsh
+   portproxy rule per port.
 
 4. **Tailscale for HTTPS:** only needed when the target app requires HTTPS
    (WordPress with HTTPS constants, Secure cookies, HSTS). For plain HTTP
