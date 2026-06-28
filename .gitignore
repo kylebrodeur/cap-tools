@@ -5,3 +5,6 @@ null
 __pycache__/
 guide/spike/spike-output/
 .remember/
+
+# pi agent session state
+.pi/
