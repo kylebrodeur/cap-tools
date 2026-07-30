@@ -5,7 +5,7 @@
 > Status: exploratory — for discussion, not committed.
 >
 > **Tightened recommendation:** build the deterministic guide generator as
-> **`cap guide`** and **contribute it upstream to Cap**; keep our deep "review
+> **`cap doc`** and **contribute it upstream to Cap**; keep our deep "review
 > analysis" as a companion on top. Full design in
 > [CAP-UPSTREAM-PROPOSAL.md](CAP-UPSTREAM-PROPOSAL.md).
 

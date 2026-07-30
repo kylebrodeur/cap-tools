@@ -39,7 +39,7 @@ uv run spike/cap_ingest.py "C:/path/to/recording.cap"
 │   ├── project-config-schema.md     # .cap config reference
 │   ├── decisions.md                 # Guide half decision log
 │   ├── productization.md            # market + strategy
-│   ├── upstream-proposal.md         # cap guide RFC
+│   ├── upstream-proposal.md         # cap doc RFC (renamed from cap guide — see its Status update)
 │   └── reference/                   # reference scripts
 ├── guide/                           # Guide half (working code)
 │   ├── spike/                       # core pipeline (cap_ingest, structure, build_walkthrough_doc, transcribe)

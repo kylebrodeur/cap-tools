@@ -1,13 +1,35 @@
-# Agent Brief — Tighten `cap guide` and prepare it for upstream contribution to Cap
+# Agent Brief — Tighten `cap doc` and prepare it for upstream contribution to Cap
 
 > **For a local coding agent.** You have no memory of the conversation that
 > produced this — everything you need is here or in the linked files. Work on a
 > branch. **Do NOT open a GitHub PR or post anything to GitHub** in this task —
 > only prepare drafts. A human will submit the issue/discussion (and later the PR).
 
+> **Status update — 2026-07-30 (maintainer contact):** Kyle emailed Richie
+> (CapSoftware) directly instead of going through the issue/Discussion process below.
+> Richie's reply: go ahead and open a **pull request with agent workflows and tools
+> for Cap.** This supersedes the "issue/discussion first" plan in this brief — a PR
+> is now the operative path, with direct maintainer buy-in already in hand. Scope is
+> not yet nailed down: "agent workflows and tools" may mean `cap doc` specifically,
+> the `skills/cap-cli` agent-integration work, the record/beat-automation half of
+> this repo, or some combination — needs a scoping pass before building the PR
+> branch. See the matching note in `upstream-proposal.md`. **No PR has been opened
+> yet** — this is a note for whoever picks up the scoping conversation next.
+
+> **Status update — 2026-07-30:** This brief originally targeted the command name
+> `cap guide`. Checked against `CapSoftware/Cap` directly (`apps/cli/src/guide.rs`):
+> `cap guide` was already Cap's agent capability-manifest command when this brief was
+> written (shipped 2026-06-04, commit `db23a7f`, extended again 2026-07-18 in commit
+> `a9dbcdc` alongside a new `cap agents install --target codex|claude|cursor --component
+> skill|mcp|all` feature — see `cap.so/docs/agents`). Renamed the proposed doc/SOP
+> subcommand to **`cap doc`** throughout this brief and the linked RFC. The underlying
+> gap (recording → illustrated step/SOP doc) is still open in Cap as of this check —
+> nothing in the CLI's substantial growth since June (`caps`, `organizations`, `library`,
+> `mcp serve`, `agents install`, etc.) covers it.
+
 ## 0. Read first (in this order)
-1. [`CAP-UPSTREAM-PROPOSAL.md`](CAP-UPSTREAM-PROPOSAL.md) — the spec: a `cap guide`
-   CLI subcommand + `crates/guide` for Cap. **This is what you are tightening toward.**
+1. [`CAP-UPSTREAM-PROPOSAL.md`](CAP-UPSTREAM-PROPOSAL.md) — the spec: a `cap doc`
+   CLI subcommand + `crates/doc` for Cap. **This is what you are tightening toward.**
 2. [`README.md`](README.md), [`DECISIONS.md`](DECISIONS.md) (D1–D10),
    [`ROADMAP.md`](ROADMAP.md), [`PRODUCTIZATION.md`](PRODUCTIZATION.md) — context.
 3. [`spike/SPIKE_IMPROVEMENT_BRIEF.md`](spike/SPIKE_IMPROVEMENT_BRIEF.md) **§7.1** —
@@ -15,10 +37,10 @@
 
 ## 1. Goal
 Turn the working-but-sprawling spike into a **tight, documented reference
-implementation of `cap guide`** that mirrors the proposed upstream CLI, and
+implementation of `cap doc`** that mirrors the proposed upstream CLI, and
 prepare the **upstream materials** (issue + discussion + PR plan + a demo) so a
 human can submit them. The Python reference impl is what the eventual Rust
-`cap-guide` crate will be ported from — keep it faithful to that target.
+`cap-doc` crate will be ported from — keep it faithful to that target.
 
 ## 2. What exists (environment + prototype)
 - **Repo:** this directory (`guide-tool`), git on `main`. Toolchain: **uv** (Windows);
@@ -44,7 +66,7 @@ human can submit them. The Python reference impl is what the eventual Rust
 
 ## 3. Tasks
 
-### A. Consolidate into a tight `cap guide` reference implementation
+### A. Consolidate into a tight `cap doc` reference implementation
 Create a clean, single-entry module/CLI (e.g. `capguide/` package or
 `spike/capguide.py`) that **reads a `.cap` directory directly** and mirrors the
 RFC surface:
@@ -78,14 +100,14 @@ Clone `CapSoftware/Cap` (read-only) and confirm, citing file paths:
   read the `export` command as the template for `guide`), `cap-project` config/meta
   types, and `CONTRIBUTING.md` / code style / DCO or CLA requirements.
 - Produce a **port map**: each prototype function → target Rust module in a new
-  `crates/guide` (`cap-guide`) + a `cap guide` subcommand in `apps/cli`. Include a
+  `crates/doc` (`cap-doc`) + a `cap doc` subcommand in `apps/cli`. Include a
   Rust **API sketch** (`Guide` / `Step` structs; the subcommand's clap args) — design
   only, no Rust implementation.
 
 ### C. Prepare upstream materials (drafts only — DO NOT POST)
 Create an `upstream/` folder:
 - `upstream/ISSUE.md` — concise feature request: problem (Cap stops at video; SOP/doc
-  layer is owned by Scribe/Guidde), proposal (`cap guide`), why it fits Cap, link to
+  layer is owned by Scribe/Guidde), proposal (`cap doc`), why it fits Cap, link to
   the demo. Short, maintainer-friendly.
 - `upstream/DISCUSSION.md` — RFC-style: motivation, design (crate + subcommand,
   reuse of zoomSegments/cursor/captions), CLI surface, non-goals, alternatives,
@@ -133,13 +155,14 @@ Create an `upstream/` folder:
 Use these as the basis for `upstream/ISSUE.md` and `upstream/DISCUSSION.md`.
 Before finalizing: verify every Cap-repo claim against the cloned source, match
 Cap's issue/discussion **templates** if they have them (`.github/`), confirm the
-naming (`cap guide` vs `cap doc`), attach the generated demo, and check
+naming (`cap doc` — confirmed available as of 2026-07-30; `cap guide` is taken),
+attach the generated demo, and check
 `CONTRIBUTING.md` for DCO/CLA + the right place to propose features.
 
 ### 7a. Issue draft (`upstream/ISSUE.md`)
 
 ```markdown
-**Feature: `cap guide` — generate an illustrated step / SOP doc from a recording**
+**Feature: `cap doc` — generate an illustrated step / SOP doc from a recording**
 
 ### Problem
 Cap produces beautiful recordings and transcripts, but stops there. The
@@ -150,12 +173,12 @@ a doc (onboarding, SOPs, support articles) export the video and rebuild steps by
 hand elsewhere.
 
 ### Proposal
-Add a `cap guide <project.cap>` subcommand that renders a self-contained,
+Add a `cap doc <project.cap>` subcommand that renders a self-contained,
 illustrated step/SOP document (`index.html` + `index.md` + `images/`) from data
 Cap already has — cursor clicks/moves, `timeline.zoomSegments`, and captions.
 
 ```
-cap guide <project.cap> [--out <dir>] [--format html|md|both] [--ai <openai-url>] [--json]
+cap doc <project.cap> [--out <dir>] [--format html|md|both] [--ai <openai-url>] [--json]
 ```
 
 - **Deterministic by default, fully local** — steps come from `zoomSegments`
@@ -174,7 +197,7 @@ missing doc layer, and it keeps Cap's "beautiful, shareable, self-hostable" etho
 
 ### Status
 We have a working prototype (reads real `.cap` recordings end-to-end) and a port
-map to a `crates/guide` crate + `apps/cli` subcommand. **Happy to contribute a PR
+map to a `crates/doc` crate + `apps/cli` subcommand. **Happy to contribute a PR
 (AGPLv3) if this is welcome upstream.** Demo doc attached: [link].
 
 Would the maintainers be open to this? Any preferences on naming, crate boundary,
@@ -184,7 +207,7 @@ or the AI-provider abstraction before we open a PR?
 ### 7b. Discussion draft (`upstream/DISCUSSION.md`) — RFC
 
 ```markdown
-# RFC: `cap guide` — recordings → illustrated step / SOP docs
+# RFC: `cap doc` — recordings → illustrated step / SOP docs
 
 ## Motivation
 Cap is the best open-source way to *capture* a workflow, but the output is a
@@ -195,7 +218,7 @@ uniquely positioned to own this: it captures any desktop app at high quality and
 already computes cursor tracking + auto-zoom focus.
 
 ## Proposal
-A new `cap guide` subcommand + `crates/guide` (`cap-guide`) that renders a
+A new `cap doc` subcommand + `crates/doc` (`cap-doc`) that renders a
 self-contained doc (`index.html` + `index.md` + `images/`) from a `.cap` project,
 reusing existing data:
 - **Steps** = `timeline.zoomSegments` (`mode: auto`) ∪ click-down events, deduped
@@ -208,11 +231,11 @@ reusing existing data:
   off by default, local-friendly.
 
 ## CLI
-`cap guide <project.cap> [--out <dir>] [--format html|md|both] [--ai <url> [--ai-model m]] [--json]`
+`cap doc <project.cap> [--out <dir>] [--format html|md|both] [--ai <url> [--ai-model m]] [--json]`
 — emits `{"type":"Completed","path":...}` under `--json`, matching `export`.
 
 ## Design / fit
-- `cap-guide` is pure logic over `cap-project` types + cursor/captions/zoomSegments;
+- `cap-doc` is pure logic over `cap-project` types + cursor/captions/zoomSegments;
   frames via the existing decode path. The CLI subcommand mirrors `export`.
 - AI is a thin pluggable OpenAI-compatible client behind a flag — no hard dep,
   no cloud requirement.
@@ -234,7 +257,8 @@ AGPLv3, same as Cap core. Credit shared.
 
 ## Questions for maintainers
 1. Is a doc/SOP output something you'd want **upstream** (vs a plugin/companion)?
-2. Naming: `cap guide` vs `cap doc` vs `export --guide`?
+2. Naming: `cap doc` (proposed here — `cap guide` is already taken by the agent
+   capability-manifest command) vs `export --doc` vs something else you'd prefer?
 3. Crate boundary + where the AI-provider abstraction should live?
 4. Anything in the project/render APIs we should build on rather than around?
 

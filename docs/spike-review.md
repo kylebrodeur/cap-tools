@@ -5,7 +5,7 @@ unified system vs what gets archived.
 
 ---
 
-## Core pipeline (keep, refactor into unified `cap guide`)
+## Core pipeline (keep, refactor into unified `cap doc`)
 
 These four scripts form the deterministic guide generation pipeline. They
 should be refactored into a single `capguide` module with a clean CLI.

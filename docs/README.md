@@ -18,7 +18,7 @@
 | [decisions.md](./decisions.md) | Decision log D1–D10 (Guide half) |
 | [productization.md](./productization.md) | Market landscape + productization strategy |
 | [roadmap.md](./roadmap.md) | Current state + backlog |
-| [upstream-proposal.md](./upstream-proposal.md) | RFC: `cap guide` upstream to CapSoftware/Cap |
+| [upstream-proposal.md](./upstream-proposal.md) | RFC: `cap doc` upstream to CapSoftware/Cap |
 | [upstream-agent-brief.md](./upstream-agent-brief.md) | Agent brief for tightening the guide impl |
 
 ## Pipeline & Operations

@@ -64,7 +64,7 @@ guide-tool/
 ├── DECISIONS.md           ← decision log D1–D10 (why the architecture is what it is)
 ├── ROADMAP.md             ← current state + future proposals / backlog
 ├── PRODUCTIZATION.md      ← market landscape + productization strategy (draft)
-├── CAP-UPSTREAM-PROPOSAL.md ← tightened system as a `cap guide` upstream RFC (draft)
+├── CAP-UPSTREAM-PROPOSAL.md ← tightened system as a `cap doc` upstream RFC (draft)
 ├── UPSTREAM-AGENT-BRIEF.md  ← hand-off prompt: tighten the impl + prep upstream materials
 ├── ARCHITECTURE.md        ← earlier (pre-Cap) design notes; still useful context
 ├── guide.py               ← project-management CLI (sessions, context, build)
