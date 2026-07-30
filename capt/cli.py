@@ -56,7 +56,7 @@ def record(url, name, out, screen, steps, marker_source, export_to, json_out):
         step_list = json.loads(Path(steps).read_text())
 
     if _is_wsl():
-        _record_via_windows(url, name, out, screen, json_out)
+        _record_via_windows(url, name, out, screen, steps, marker_source, export_to, json_out)
         return
 
     from capt.record.beat import run_beat
@@ -82,7 +82,7 @@ def record(url, name, out, screen, steps, marker_source, export_to, json_out):
             click.echo(f"  Exported: {result.export_path}")
 
 
-def _record_via_windows(url, name, out, screen, json_out):
+def _record_via_windows(url, name, out, screen, steps, marker_source, export_to, json_out):
     """WSL -> PowerShell -> Windows beat_runner_entry.py, unchanged in spirit
     from the pre-macOS-support implementation."""
     from capt import tailscale
@@ -98,6 +98,12 @@ def _record_via_windows(url, name, out, screen, json_out):
     ps_cmd = f"cd C:\\cap-tools; python beat_runner_entry.py {name} {url} {out_dir}"
     if screen:
         ps_cmd += f" --screen {screen}"
+    if steps:
+        ps_cmd += f" --steps {steps}"
+    if marker_source and marker_source != "steps":
+        ps_cmd += f" --marker-source {marker_source}"
+    if export_to:
+        ps_cmd += f" --export-to {export_to}"
 
     if json_out:
         click.echo(json.dumps({"status": "running", "beat": name, "url": url}))
@@ -124,7 +130,7 @@ def _record_via_windows(url, name, out, screen, json_out):
         result["status"] = "completed"
         click.echo(json.dumps(result))
     else:
-        click.echo(f"✓ Beat '{name}' recorded: {result.get('capProjectPath', '?')}")
+        click.echo(f"✓ Beat '{name}' recorded: {result.get('cap_path', '?')}")
 
 
 # ── guide ─────────────────────────────────────────────────────────────────────

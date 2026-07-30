@@ -51,3 +51,39 @@ def test_record_reads_steps_json_file(tmp_path):
 
     called_steps = run_beat_mock.call_args.kwargs.get("steps", run_beat_mock.call_args[0][1] if len(run_beat_mock.call_args[0]) > 1 else None)
     assert called_steps == [{"action": "click", "selector": "#go"}]
+
+
+def test_record_forwards_steps_marker_source_export_to_over_powershell(tmp_path):
+    steps_file = tmp_path / "steps.json"
+    steps_file.write_text(json.dumps([{"action": "click", "selector": "#go"}]))
+    export_path = str(tmp_path / "out.mp4")
+    fake_proc = MagicMock(returncode=0, stdout='{"recordingId": "rec-1", "cap_path": "full.cap"}\n')
+    with patch("capt.cli._is_wsl", return_value=True), \
+         patch("subprocess.run", return_value=fake_proc) as run_mock:
+        runner = CliRunner()
+        result = runner.invoke(main, [
+            "record", "https://example.com", "--out", str(tmp_path),
+            "--steps", str(steps_file),
+            "--marker-source", "global-capture",
+            "--export-to", export_path,
+            "--json",
+        ])
+
+    assert result.exit_code == 0
+    run_mock.assert_called_once()
+    ps_cmd = run_mock.call_args[0][0][3]
+    assert f"--steps {steps_file}" in ps_cmd
+    assert "--marker-source global-capture" in ps_cmd
+    assert f"--export-to {export_path}" in ps_cmd
+
+
+def test_record_non_json_output_uses_cap_path_from_windows_result(tmp_path):
+    fake_proc = MagicMock(returncode=0, stdout='{"recordingId": "rec-1", "cap_path": "full.cap"}\n')
+    with patch("capt.cli._is_wsl", return_value=True), \
+         patch("subprocess.run", return_value=fake_proc):
+        runner = CliRunner()
+        result = runner.invoke(main, ["record", "https://example.com", "--out", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "full.cap" in result.output
+    assert "capProjectPath" not in result.output
