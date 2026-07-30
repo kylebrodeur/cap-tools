@@ -6,28 +6,29 @@ branch `agents-workflows-auto-zoom-recording` on the `kylebrodeur/Cap` fork)
 before it gets pushed and opened as a real PR.
 
 The upstream doc is tool-agnostic — any agent can do the "read config, build
-segments, merge, confirm, write" steps itself with plain `cap` commands. To
-make this testable without hand-writing JSON each time, this repo now ships a
-small reference implementation of that exact sequence: `capt zoom mark` /
-`capt zoom apply` (see `capt/zoom.py`, `capt/cli.py`). Testing with these
-commands is testing the documented technique, not a Cap-specific feature —
-nothing here is upstream material itself.
+segments, merge, confirm, write" steps itself with plain `cap` commands. This
+repo provides a reference implementation: the `capt record` command with
+`--marker-source steps+global-capture` and `--export-to` support now integrates
+marking, zoom building, merging, and export into a single operation (see
+`capt/record/beat.py`, `capt/cli.py`). Testing with this command validates the
+technique works end-to-end without manual multi-step orchestration.
 
 ## What this validates
 
-- `cap record start --detach` → collecting markers during the recording →
-  `cap record stop` → `cap project validate` all work as described.
-- Zoom segments built from real elapsed-time markers land where you'd expect
-  when exported (i.e. the `pre_seconds`/`hold_seconds` defaults in
+- `capt record` with `--marker-source steps+global-capture` captures real user
+  interactions (clicks, keystrokes) without requiring manual mark entry.
+- Zoom segments built from captured markers land where you'd expect when
+  exported (i.e. the `pre_seconds`/`hold_seconds` defaults in
   `build_zoom_segments` feel right, not too early/late/short).
-- `cap project config get` → merge → `cap project config set` round-trips
-  correctly and doesn't clobber other config fields (background, camera,
-  cursor, etc. from whatever you'd already set in Studio).
-- The export actually shows auto-zoom at the marked moments.
+- Zoom segment merging into the existing config doesn't clobber other config
+  fields (background, camera, cursor, etc. from whatever you'd already set
+  in Studio).
+- The `--export-to` flag on `capt record` produces an export that shows
+  auto-zoom at the marked moments.
 
 If any step feels off, that's a reason to tune the workflow doc (or
-`build_zoom_segments`'s defaults) before submitting the PR — not something to
-paper over.
+`build_zoom_segments`'s defaults in `capt/record/beat.py`) before submitting
+the PR — not something to paper over.
 
 ## Prerequisites
 
@@ -45,72 +46,45 @@ paper over.
 1. **Preflight**
 
    ```bash
-   cap doctor --json
-   cap targets --json
+   capt doctor --json
    ```
 
-   Confirm `captureReady: true` and at least one screen target.
+   Confirm that `cap` CLI is available and your system is ready for recording.
 
-2. **Start a detached recording**
+2. **Run the one-shot recording with auto-zoom and export**
+
+   In a single command, `capt record` now handles marking, zoom-building, merging,
+   and export. The `--marker-source steps+global-capture` flag captures every real
+   click and keystroke (plus Cmd+Shift+M for manual labeled marks) while you drive
+   the walkthrough by hand — replacing the old manual `capt zoom mark` step entirely:
 
    ```bash
-   cap record start --screen <screen-id> --detach --json
+   capt record https://example.com --out recordings --marker-source steps+global-capture --export-to test-walkthrough.mp4 --json
    ```
 
-   Note the returned `recordingId` and `path`.
+   **What this does:**
+   - Records the screen capture at the target URL (or local server).
+   - Listens for every real user interaction (clicks, keyboard) and Cmd+Shift+M marks.
+   - Internally builds zoom segments around each marked moment (0.5s before, 2.5s after by default).
+   - Merges the zoom segments into the project config without clobbering other settings.
+   - Exports directly to `test-walkthrough.mp4`.
 
-3. **Collect markers while you drive the walkthrough**
+3. **Perform the walkthrough**
 
-   In a second terminal, before (or right as) you start performing the steps
-   on screen:
+   While the command is running, interact with the screen normally:
+   - Click, type, and navigate as you would in a typical walkthrough.
+   - Press Cmd+Shift+M at meaningful moments if you want to add explicit labeled marks
+     (optional — every real click is already captured).
+   - When done, the export completes automatically.
 
-   ```bash
-   uv run capt zoom mark --out events.json
-   ```
-
-   Type a short label and press Enter at each meaningful moment (e.g.
-   `opened-settings`, `toggled-dark-mode`, `clicked-save`). Press Ctrl-D when
-   the walkthrough is done — this writes `events.json`.
-
-4. **Stop the recording**
-
-   ```bash
-   cap record stop --id <recording-id> --json
-   ```
-
-   Confirm the response reports `recordingMetaExists: true`.
-
-5. **Validate the project**
-
-   ```bash
-   cap project validate <path.cap> --json
-   ```
-
-6. **Build and apply zoom segments**
-
-   ```bash
-   uv run capt zoom apply <path.cap> events.json
-   ```
-
-   Review the printed proposed segments (this is the "show the merged config
-   before writing" step from the workflow doc) — confirm when prompted, or
-   pass `--yes` to skip the prompt once you trust it.
-
-7. **Export**
-
-   ```bash
-   cap export <path.cap> --output test-walkthrough.mp4 --json
-   ```
-
-8. **Watch `test-walkthrough.mp4` and check:**
+4. **Watch `test-walkthrough.mp4` and verify:**
    - Zoom kicks in ~0.5s before each marked moment and holds ~2.5s after it
-     (the `build_zoom_segments` defaults) — adjust `--amount` or, if the
-     timing itself feels wrong, that's a signal to change the defaults, not
-     just this one run.
-   - Segments for markers placed close together merged into one continuous
-     zoom instead of jarring in/out/in.
-   - Anything you'd already configured in Studio (background, camera,
-     cursor style) survived — this is what `merge_zoom_segments` is for.
+     (the `build_zoom_segments` defaults) — if timing feels off, that signals a need
+     to tune the defaults in `capt/record/beat.py`, not just this one run.
+   - Segments for markers placed close together merge into one continuous zoom
+     instead of jarring in/out/in.
+   - Anything you'd already configured in Studio (background, camera, cursor style)
+     survived — this is what `merge_zoom_segments` is for.
 
 ## If it all checks out
 
@@ -122,6 +96,6 @@ works.
 
 ## If something's off
 
-Note exactly what (wrong timing, clobbered fields, confusing confirmation
-step) — that feeds back into either `capt/zoom.py`'s defaults or a wording fix
-in the workflow doc itself before it goes upstream.
+Note exactly what (wrong timing, clobbered fields, missed markers) — that feeds
+back into either `capt/record/beat.py`'s defaults or a wording fix in the
+workflow doc itself before it goes upstream.
