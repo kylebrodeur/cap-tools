@@ -159,6 +159,100 @@ def test_run_beat_continues_to_export_when_config_step_raises_system_exit(tmp_pa
     assert "continuing without it" in capsys.readouterr().out
 
 
+def test_run_beat_creates_tracker_after_start_recording(tmp_path):
+    # The marker clock (create_tracker) must be anchored to when the
+    # recording actually started, not to whenever run_beat() happened to be
+    # called — _start_recording() blocks on Cap's session-readiness poll,
+    # which can take real time. If create_tracker() ran first, every
+    # elapsed_s marker would be measured from before recording began,
+    # systematically shifting zoom segments early.
+    call_order = []
+
+    def fake_start_recording(cap_path, screen_id):
+        call_order.append("start_recording")
+        return {"recordingId": "rec-1"}
+
+    def fake_create_tracker():
+        call_order.append("create_tracker")
+        return MagicMock()
+
+    patches, mocks = _patch_all(
+        _start_recording=MagicMock(side_effect=fake_start_recording),
+    )
+    with patch("capt.record.beat.create_tracker", side_effect=fake_create_tracker):
+        for p in patches:
+            p.start()
+        try:
+            run_beat(url="https://example.com", steps=[], out_dir=str(tmp_path))
+        finally:
+            for p in patches:
+                p.stop()
+
+    assert call_order == ["start_recording", "create_tracker"]
+
+
+def test_run_beat_starts_global_capture_after_start_recording(tmp_path):
+    # Same ordering requirement as create_tracker above, but for the
+    # global-capture path: GlobalCapture must be constructed/started only
+    # after the recording call returns.
+    call_order = []
+
+    def fake_start_recording(cap_path, screen_id):
+        call_order.append("start_recording")
+        return {"recordingId": "rec-1"}
+
+    fake_capture = MagicMock()
+
+    def fake_global_capture(tracker):
+        call_order.append("global_capture_created")
+        return fake_capture
+
+    patches, mocks = _patch_all(
+        _start_recording=MagicMock(side_effect=fake_start_recording),
+    )
+    with patch("capt.record.macos_capture.GlobalCapture", side_effect=fake_global_capture):
+        for p in patches:
+            p.start()
+        try:
+            run_beat(
+                url=None, steps=[], out_dir=str(tmp_path),
+                marker_source="global-capture",
+            )
+        finally:
+            for p in patches:
+                p.stop()
+
+    assert call_order == ["start_recording", "global_capture_created"]
+    fake_capture.start.assert_called_once()
+    fake_capture.stop.assert_called_once()
+
+
+def test_run_beat_steps_plus_global_capture_drives_steps_and_captures(tmp_path):
+    # marker_source="steps+global-capture" is the mode the project's
+    # playbook recommends for real use — it must drive steps AND run
+    # global-capture at the same time.
+    patches, mocks = _patch_all()
+    fake_capture = MagicMock()
+    with patch("capt.record.macos_capture.GlobalCapture", return_value=fake_capture) as gc_cls:
+        for p in patches:
+            p.start()
+        try:
+            run_beat(
+                url="https://example.com",
+                steps=[{"action": "click", "selector": "#go"}],
+                out_dir=str(tmp_path),
+                marker_source="steps+global-capture",
+            )
+        finally:
+            for p in patches:
+                p.stop()
+
+    mocks["drive_steps"].assert_called_once()
+    gc_cls.assert_called_once()
+    fake_capture.start.assert_called_once()
+    fake_capture.stop.assert_called_once()
+
+
 def test_run_beat_stops_recording_even_if_capture_stop_raises(tmp_path):
     patches, mocks = _patch_all()
     fake_capture = MagicMock()

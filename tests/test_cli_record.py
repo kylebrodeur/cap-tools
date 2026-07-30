@@ -25,7 +25,18 @@ def test_record_calls_run_beat_in_process_when_not_wsl(tmp_path):
 
 
 def test_record_uses_powershell_hop_when_wsl(tmp_path):
-    fake_proc = MagicMock(returncode=0, stdout='{"recordingId": "rec-1", "capProjectPath": "full.cap"}\n')
+    # The Windows side reports a BeatResult as snake_case JSON (asdict of
+    # BeatResult); the --json output must be remapped into the SAME
+    # camelCase/"type" schema the in-process (macOS/Linux) path emits, so a
+    # --json consumer sees one shape regardless of platform.
+    windows_result = json.dumps({
+        "recording_id": "rec-1",
+        "cap_path": "full.cap",
+        "events": [],
+        "zoom_segments": [],
+        "export_path": None,
+    })
+    fake_proc = MagicMock(returncode=0, stdout=windows_result + "\n")
     with patch("capt.cli._is_wsl", return_value=True), \
          patch("subprocess.run", return_value=fake_proc) as run_mock:
         runner = CliRunner()
@@ -34,6 +45,16 @@ def test_record_uses_powershell_hop_when_wsl(tmp_path):
     assert result.exit_code == 0
     run_mock.assert_called_once()
     assert "powershell.exe" in run_mock.call_args[0][0]
+
+    payload = json.loads(result.output.strip().splitlines()[-1])
+    assert payload["type"] == "Completed"
+    assert payload["recordingId"] == "rec-1"
+    assert payload["capPath"] == "full.cap"
+    assert payload["zoomSegments"] == []
+    assert payload["exportPath"] is None
+    assert "recording_id" not in payload
+    assert "cap_path" not in payload
+    assert "status" not in payload
 
 
 def test_record_reads_steps_json_file(tmp_path):

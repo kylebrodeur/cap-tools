@@ -92,17 +92,24 @@ def run_beat(
     out_path.mkdir(parents=True, exist_ok=True)
     cap_path = str(out_path / f"{name}.cap")
 
-    tracker = create_tracker()
     sources = marker_source.split("+")
+
+    started = _start_recording(cap_path, screen_id)
+    recording_id = started["recordingId"]
+
+    # The marker clock must be anchored to when the recording actually
+    # started, not to whenever this function happened to be called —
+    # _start_recording() blocks on Cap's session-readiness poll, which can
+    # take real time. Creating the tracker (and starting global-capture)
+    # only after the recording call returns keeps every elapsed_s offset
+    # accurate relative to the recording's own timeline.
+    tracker = create_tracker()
 
     capture = None
     if "global-capture" in sources:
         from capt.record.macos_capture import GlobalCapture
         capture = GlobalCapture(tracker)
         capture.start()
-
-    started = _start_recording(cap_path, screen_id)
-    recording_id = started["recordingId"]
 
     try:
         if "steps" in sources and (url or steps):

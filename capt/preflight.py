@@ -146,7 +146,8 @@ def preflight(
 
     def _is_wsl() -> bool:
         try:
-            return "microsoft" in open("/proc/version").read().lower()
+            with open("/proc/version") as f:
+                return "microsoft" in f.read().lower()
         except OSError:
             return False
 

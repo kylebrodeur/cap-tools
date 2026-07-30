@@ -127,8 +127,23 @@ def _record_via_windows(url, name, out, screen, steps, marker_source, export_to,
         result = {"raw": proc.stdout.strip()}
 
     if json_out:
-        result["status"] = "completed"
-        click.echo(json.dumps(result))
+        if "raw" in result:
+            # Unparseable output is a different, already-handled failure
+            # mode — surface it as-is rather than forcing it into the
+            # Completed schema below.
+            click.echo(json.dumps(result))
+        else:
+            # Remap the Windows side's snake_case BeatResult fields into the
+            # exact same schema the in-process (macOS/Linux) path emits, so
+            # a --json consumer sees one shape regardless of platform.
+            click.echo(json.dumps({
+                "type": "Completed",
+                "recordingId": result.get("recording_id"),
+                "capPath": result.get("cap_path"),
+                "events": result.get("events"),
+                "zoomSegments": result.get("zoom_segments"),
+                "exportPath": result.get("export_path"),
+            }))
     else:
         click.echo(f"✓ Beat '{name}' recorded: {result.get('cap_path', '?')}")
 
