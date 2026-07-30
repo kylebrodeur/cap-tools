@@ -10,10 +10,20 @@ Commands:
 """
 
 import json
+import subprocess
 import sys
 from pathlib import Path
 
 import click
+
+
+def _is_wsl() -> bool:
+    """True when running inside WSL (Windows Subsystem for Linux)."""
+    try:
+        with open("/proc/version") as f:
+            return "microsoft" in f.read().lower()
+    except OSError:
+        return False
 
 
 @click.group()
@@ -25,42 +35,72 @@ def main():
 # ── record ────────────────────────────────────────────────────────────────────
 
 @main.command()
-@click.argument("url")
-@click.option("--beat", default=None, help="Named beat to record")
+@click.argument("url", required=False)
+@click.option("--beat", "name", default="full", help="Named beat to record")
 @click.option("--out", default="recordings", help="Output directory")
 @click.option("--screen", default=None, help="Cap screen ID")
+@click.option("--steps", default=None, help="Path to a steps.json file (scripted actions)")
+@click.option("--marker-source", default="steps",
+              type=click.Choice(["steps", "global-capture", "steps+global-capture"]),
+              help="How to collect zoom markers (global-capture is macOS-only)")
+@click.option("--export-to", default=None, help="Also export the recording to this MP4 path")
 @click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
-def record(url, beat, out, screen, json_out):
-    """Automate a browser-driven screen recording.
+def record(url, name, out, screen, steps, marker_source, export_to, json_out):
+    """Automate a browser-driven screen recording with automatic zoom.
 
-    Invokes the Windows beat-runner via PowerShell. Beat steps are read from
-    a beats.json file or passed via stdin.
+    On macOS/Linux, runs in-process (no PowerShell hop). On WSL, invokes the
+    beat-runner on Windows via PowerShell, unchanged from before.
     """
-    import subprocess
+    step_list = []
+    if steps:
+        step_list = json.loads(Path(steps).read_text())
+
+    if _is_wsl():
+        _record_via_windows(url, name, out, screen, json_out)
+        return
+
+    from capt.record.beat import run_beat
+
+    if json_out:
+        click.echo(json.dumps({"type": "Progress", "stage": "recording"}))
+
+    result = run_beat(url, step_list, out, name=name, screen_id=screen,
+                      marker_source=marker_source, export_to=export_to)
+
+    if json_out:
+        click.echo(json.dumps({
+            "type": "Completed",
+            "recordingId": result.recording_id,
+            "capPath": result.cap_path,
+            "events": result.events,
+            "zoomSegments": result.zoom_segments,
+            "exportPath": result.export_path,
+        }))
+    else:
+        click.echo(f"✓ Beat '{name}' recorded: {result.cap_path}")
+        if result.export_path:
+            click.echo(f"  Exported: {result.export_path}")
+
+
+def _record_via_windows(url, name, out, screen, json_out):
+    """WSL -> PowerShell -> Windows beat_runner_entry.py, unchanged in spirit
+    from the pre-macOS-support implementation."""
     from capt import tailscale
 
-    beat_name = beat or "full"
     out_dir = str(Path(out).resolve())
-
-    # For HTTPS targets, rewrite to the full Tailscale MagicDNS address
-    # (not just an IP) so HTTPS / Secure cookies / HSTS work. No-op for HTTP.
-    if url.lower().startswith("https://"):
+    if url and url.lower().startswith("https://"):
         resolved = tailscale.resolve_target(url)
         if resolved != url:
             if not json_out:
                 click.echo(f"→ HTTPS target via Tailscale: {resolved}")
             url = resolved
 
-    # Build PowerShell command
-    ps_cmd = (
-        f"cd C:\\cap-tools; "
-        f"python beat_runner.py {beat_name} {url} {out_dir}"
-    )
+    ps_cmd = f"cd C:\\cap-tools; python beat_runner_entry.py {name} {url} {out_dir}"
     if screen:
         ps_cmd += f" --screen {screen}"
 
     if json_out:
-        click.echo(json.dumps({"status": "running", "beat": beat_name, "url": url}))
+        click.echo(json.dumps({"status": "running", "beat": name, "url": url}))
 
     proc = subprocess.run(
         ["powershell.exe", "-NoProfile", "-Command", ps_cmd],
@@ -75,7 +115,6 @@ def record(url, beat, out, screen, json_out):
             click.echo(f"✗ {err}", err=True)
         sys.exit(1)
 
-    # Parse result
     try:
         result = json.loads(proc.stdout.strip().splitlines()[-1])
     except json.JSONDecodeError:
@@ -85,7 +124,7 @@ def record(url, beat, out, screen, json_out):
         result["status"] = "completed"
         click.echo(json.dumps(result))
     else:
-        click.echo(f"✓ Beat '{beat_name}' recorded: {result.get('capProjectPath', '?')}")
+        click.echo(f"✓ Beat '{name}' recorded: {result.get('capProjectPath', '?')}")
 
 
 # ── guide ─────────────────────────────────────────────────────────────────────
