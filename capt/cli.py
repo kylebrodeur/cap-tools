@@ -213,11 +213,15 @@ def assemble(manifest_path, json_out):
 @click.argument("url", required=False)
 @click.option("--output-dir", default="recordings")
 @click.option("--skip-playwright", is_flag=True)
+@click.option("--marker-source", default="steps",
+              type=click.Choice(["steps", "global-capture", "steps+global-capture"]),
+              help="Include the global-capture permission gate (macOS-only)")
 @click.option("--json", "json_out", is_flag=True)
-def preflight(url, output_dir, skip_playwright, json_out):
+def preflight(url, output_dir, skip_playwright, marker_source, json_out):
     """Check all dependencies before recording."""
     from capt.preflight import preflight as run_preflight
-    ok = run_preflight(url, output_dir, require_playwright=not skip_playwright)
+    ok = run_preflight(url, output_dir, require_playwright=not skip_playwright,
+                       marker_source=marker_source)
     if json_out:
         click.echo(json.dumps({"ok": ok}))
     sys.exit(0 if ok else 1)

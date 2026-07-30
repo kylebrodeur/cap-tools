@@ -55,18 +55,6 @@ def _cap_json(*args: str) -> Optional[dict]:
     return None
 
 
-def _powershell_ok() -> bool:
-    """Check that PowerShell is reachable from WSL."""
-    try:
-        proc = subprocess.run(
-            ["powershell.exe", "-NoProfile", "-Command", "echo ok"],
-            capture_output=True, text=True, timeout=10,
-        )
-        return "ok" in proc.stdout.lower()
-    except Exception:
-        return False
-
-
 def _url_reachable(url: str) -> bool:
     """Check if a URL responds (401/403 count as reachable)."""
     try:
@@ -84,7 +72,7 @@ def preflight(
     url: Optional[str] = None,
     output_dir: str = "recordings",
     require_playwright: bool = True,
-    require_beat_runner: bool = True,
+    marker_source: str = "steps",
 ) -> bool:
     """Run all preflight gates. Returns True if all pass."""
     print("=== RECORDING PREFLIGHT ===\n")
@@ -152,13 +140,29 @@ def preflight(
         print(f"  ✗ G5 output dir not writable  ({output_dir})")
         gates.append(False)
 
-    # G6: PowerShell reachable
-    if _powershell_ok():
-        print("  ✓ G6 PowerShell reachable")
-        gates.append(True)
+    # G6: platform-specific gate — PowerShell on Windows/WSL, global-capture
+    # permission on macOS (only when that marker source is requested).
+    import platform as _platform
+
+    def _is_wsl() -> bool:
+        try:
+            return "microsoft" in open("/proc/version").read().lower()
+        except OSError:
+            return False
+
+    if _platform.system() == "Windows" or _is_wsl():
+        from capt.preflight_windows import gate_powershell_reachable
+        passed, message = gate_powershell_reachable()
+        print(f"  {'✓' if passed else '✗'} G6 {message}")
+        gates.append(passed)
+    elif _platform.system() == "Darwin" and "global-capture" in marker_source.split("+"):
+        from capt.preflight_macos import gate_global_capture_permission
+        passed, message = gate_global_capture_permission()
+        print(f"  {'✓' if passed else '✗'} G6 {message}")
+        gates.append(passed)
     else:
-        print("  ✗ G6 PowerShell NOT reachable")
-        gates.append(False)
+        print("  - G6 skipped (not applicable on this platform/marker source)")
+        gates.append(True)
 
     # G7: Tailscale (only required for HTTPS targets)
     needs_https = bool(url) and url.lower().startswith("https://")
