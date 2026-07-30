@@ -3,6 +3,8 @@ node_modules/
 null
 *.pyc
 __pycache__/
+*.egg-info/
+.venv/
 guide/spike/spike-output/
 .remember/
 

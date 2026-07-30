@@ -5,6 +5,7 @@ timestamps collected during a recording run. Each event becomes a zoom
 segment that Cap will auto-follow during export.
 """
 
+import json
 from typing import Optional
 
 
@@ -66,6 +67,28 @@ def build_zoom_segments(
         else:
             merged.append(seg)
 
+    return merged
+
+
+def merge_zoom_segments(config: dict, zoom_segments: list[dict]) -> dict:
+    """Merge generated zoom segments into an existing project-config.json.
+
+    `cap project config set` replaces the whole document (omitted fields reset
+    to defaults), so any write must start from the current config and only
+    replace `timeline.zoomSegments` — never a partial object. This mirrors the
+    "read, merge, show before writing" pattern documented in Cap's own
+    Agent Workflows guide.
+
+    Args:
+        config: The project's current config, as returned by `read_config`.
+        zoom_segments: Output of `build_zoom_segments`.
+
+    Returns:
+        A new config dict with `timeline.zoomSegments` replaced. Does not
+        mutate `config`.
+    """
+    merged = json.loads(json.dumps(config))  # deep copy without extra deps
+    merged.setdefault("timeline", {})["zoomSegments"] = zoom_segments
     return merged
 
 

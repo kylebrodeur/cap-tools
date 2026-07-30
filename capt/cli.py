@@ -223,6 +223,95 @@ def preflight(url, output_dir, skip_playwright, json_out):
     sys.exit(0 if ok else 1)
 
 
+# ── zoom ──────────────────────────────────────────────────────────────────────
+
+@main.group()
+def zoom():
+    """Build and apply auto-zoom segments from recording-time markers.
+
+    Reference implementation of the "Record a multi-step walkthrough with
+    automatic zoom" agent workflow: `zoom mark` collects elapsed-time markers
+    while you drive a recording by hand; `zoom apply` turns them into
+    timeline.zoomSegments and merges them into the project's existing config.
+    """
+    pass
+
+
+@zoom.command("mark")
+@click.option("--out", default="events.json", help="Where to write collected markers")
+def zoom_mark(out):
+    """Interactively collect elapsed-time markers during a recording.
+
+    Starts a timer immediately. Press Enter (optionally typing a label first)
+    for each meaningful moment; Ctrl-D finishes and writes the markers to
+    --out as a JSON list of {label, elapsed_s}, ready for `capt zoom apply`.
+    """
+    from capt.zoom import create_tracker
+
+    tracker = create_tracker()
+    click.echo("Tracking started. Type a label and press Enter to mark a step.")
+    click.echo("Press Enter with no text for an unlabeled mark. Ctrl-D to finish.")
+    i = 0
+    try:
+        while True:
+            label = click.prompt("mark", default="", show_default=False, prompt_suffix="> ")
+            i += 1
+            tracker.mark(label or f"step-{i}")
+    except (EOFError, click.exceptions.Abort):
+        pass
+
+    events = tracker.events()
+    Path(out).write_text(json.dumps(events, indent=2))
+    click.echo(f"\n✓ {len(events)} marker(s) written to {out}")
+
+
+@zoom.command("apply")
+@click.argument("project_path")
+@click.argument("events_path")
+@click.option("--amount", default=2.0, type=float, help="Zoom level (1.5 subtle, 2.0 strong)")
+@click.option("--yes", is_flag=True, help="Write without an interactive confirmation")
+@click.option("--json", "json_out", is_flag=True)
+def zoom_apply(project_path, events_path, amount, yes, json_out):
+    """Build zoom segments from markers and merge them into a project's config.
+
+    Reads the project's CURRENT config, builds timeline.zoomSegments from the
+    markers in events_path (see `capt zoom mark`), and merges them in —
+    `cap project config set` replaces the whole document, so this never
+    writes a partial object. Shows the merged zoomSegments and asks for
+    confirmation before writing, unless --yes is passed.
+    """
+    from capt.config import read_config, write_config
+    from capt.zoom import build_zoom_segments, merge_zoom_segments
+
+    events = json.loads(Path(events_path).read_text())
+    segments = build_zoom_segments(events, amount=amount)
+
+    if not segments:
+        click.echo("No markers found — nothing to apply.", err=True)
+        sys.exit(1)
+
+    current = read_config(project_path)
+    merged = merge_zoom_segments(current, segments)
+
+    if json_out:
+        click.echo(json.dumps({"type": "Proposed", "zoomSegments": segments}))
+    else:
+        click.echo(f"Proposed {len(segments)} zoom segment(s) from {len(events)} marker(s):")
+        click.echo(json.dumps(segments, indent=2))
+
+    if not yes:
+        if not click.confirm("Write this merged config to the project?"):
+            click.echo("Aborted — nothing written.")
+            sys.exit(1)
+
+    write_config(project_path, merged)
+
+    if json_out:
+        click.echo(json.dumps({"type": "Completed", "path": project_path, "zoomSegments": segments}))
+    else:
+        click.echo(f"✓ Wrote {len(segments)} zoom segment(s) to {project_path}")
+
+
 # ── config ────────────────────────────────────────────────────────────────────
 
 @main.command()
