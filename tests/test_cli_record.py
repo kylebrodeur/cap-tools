@@ -50,3 +50,4 @@ def test_record_reads_steps_json_file(tmp_path):
                              "--steps", str(steps_file)])
 
     called_steps = run_beat_mock.call_args.kwargs.get("steps", run_beat_mock.call_args[0][1] if len(run_beat_mock.call_args[0]) > 1 else None)
+    assert called_steps == [{"action": "click", "selector": "#go"}]
