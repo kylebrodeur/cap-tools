@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # cap-cli skill setup - defines `cap` function for WSL/Linux
-# Usage: source ~/projects/cap-cli-skill/setup.sh
+# Usage: source skills/cap-cli/setup.sh
 
 CAP_CLI_PATH="${CAP_CLI_PATH:-/mnt/c/Users/<your-windows-username>/AppData/Local/Cap/cap-cli.exe}"
 
