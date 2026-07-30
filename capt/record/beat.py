@@ -108,9 +108,11 @@ def run_beat(
         if "steps" in sources and (url or steps):
             drive_steps(url, steps, tracker)
     finally:
-        if capture is not None:
-            capture.stop()
-        _stop_recording(recording_id)
+        try:
+            if capture is not None:
+                capture.stop()
+        finally:
+            _stop_recording(recording_id)
 
     _validate_project(cap_path)
 
@@ -120,7 +122,7 @@ def run_beat(
         current = read_config(cap_path)
         merged = merge_zoom_segments(current, zoom_segments)
         write_config(cap_path, merged)
-    except Exception as e:
+    except (Exception, SystemExit) as e:
         print(f"⚠ zoom/config step failed, continuing without it: {e}")
 
     export_path = None

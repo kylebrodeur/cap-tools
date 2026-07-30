@@ -131,3 +131,49 @@ def test_run_beat_skips_driving_when_no_url_and_steps_marker_source(tmp_path):
             p.stop()
 
     mocks["drive_steps"].assert_not_called()
+
+
+def test_run_beat_continues_to_export_when_config_step_raises_system_exit(tmp_path, capsys):
+    # capt.config.read_config/write_config actually call sys.exit(...) on a real
+    # `cap project config get/set` subprocess failure, not a plain Exception —
+    # SystemExit subclasses BaseException, so the zoom/config except clause must
+    # catch it too or a real config failure aborts the whole beat.
+    patches, mocks = _patch_all(
+        read_config=MagicMock(side_effect=SystemExit("cap project config get failed: boom")),
+    )
+    for p in patches:
+        p.start()
+    try:
+        result = run_beat(
+            url="https://example.com", steps=[], out_dir=str(tmp_path),
+            export_to=str(tmp_path / "out.mp4"),
+        )
+    finally:
+        for p in patches:
+            p.stop()
+
+    mocks["write_config"].assert_not_called()
+    mocks["cap_export"].assert_called_once()
+    assert isinstance(result, BeatResult)
+    assert result.export_path == "/tmp/out.mp4"
+    assert "continuing without it" in capsys.readouterr().out
+
+
+def test_run_beat_stops_recording_even_if_capture_stop_raises(tmp_path):
+    patches, mocks = _patch_all()
+    fake_capture = MagicMock()
+    fake_capture.stop.side_effect = RuntimeError("capture stop boom")
+    with patch("capt.record.macos_capture.GlobalCapture", return_value=fake_capture):
+        for p in patches:
+            p.start()
+        try:
+            with pytest.raises(RuntimeError, match="capture stop boom"):
+                run_beat(
+                    url=None, steps=[], out_dir=str(tmp_path),
+                    marker_source="global-capture",
+                )
+        finally:
+            for p in patches:
+                p.stop()
+
+    mocks["_stop_recording"].assert_called_once_with("rec-1")
