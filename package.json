@@ -1,0 +1,12 @@
+{
+  "name": "cap-tools-skills",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Installs this repo's agentskills.io-compliant skills into a target agent's skills directory.",
+  "bin": {
+    "cap-tools-skills": "bin/install-skill.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

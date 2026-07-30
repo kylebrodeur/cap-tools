@@ -20,6 +20,22 @@ cap doctor --json
 cap targets --json
 ```
 
+## Quick Start — Install skills into any agent
+
+Skills under `skills/` follow the open [agentskills.io](https://agentskills.io) spec —
+portable across Claude Code, Cursor, Codex, and any other skills-compatible agent.
+Install one with a single `npx` call, no local clone required:
+
+```bash
+npx github:kylebrodeur/cap-tools --list                              # see what's available
+npx github:kylebrodeur/cap-tools cap-cli --target claude --dry-run   # preview
+npx github:kylebrodeur/cap-tools cap-cli --target claude             # apply
+npx github:kylebrodeur/cap-tools --all --target cursor               # install every skill found
+```
+
+`--target` is one of `codex`, `claude`, `cursor` (same targets and path convention as
+Cap's own `cap agents install`). See `bin/install-skill.js`.
+
 ## Quick Start — Guide Tool
 
 ```bash
@@ -31,6 +47,8 @@ uv run spike/cap_ingest.py "C:/path/to/recording.cap"
 ## Structure
 
 ```
+├── bin/install-skill.js             # npx installer — installs skills/* into codex/claude/cursor
+├── package.json                     # names the npx entry point above
 ├── skills/cap-cli/                  # cap CLI shim for WSL (agentskills.io)
 │   ├── SKILL.md, setup.sh, agent.sh
 ├── docs/                            # all documentation
