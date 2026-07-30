@@ -208,24 +208,63 @@ Windows-recorded ones, anything without the log).
 Deliberately not detailed further here — this depends on the Accessibility
 integration built in Phase 1 (`macos_capture.py`) actually working in practice.
 
-## Phase 3 — native app automation (sequenced last, most exploratory)
+## Phase 3 — native app automation + the chained `capt walkthrough` command (sequenced last)
 
-Extends the step schema in `capt/record/steps.py` beyond Playwright/browser
-actions to Accessibility-driven native-app actions, e.g.
-`{"action": "ax-click", "app": "Notes", "role": "AXButton", "title": "New Note"}`.
+Two deliverables, bundled because both are small once Phase 1's groundwork
+exists and neither is urgent enough to justify its own phase:
 
-This is the least proven of the four capabilities folded into this design:
-matching UI elements in arbitrary native apps is heuristic (role/title-based),
-not clean DOM selectors, and behavior varies a lot by app. Rather than design a
-general schema blind, Phase 3 should start as *direction + one concrete
-prototype app*, refined into its own design pass once there's a real
-Accessibility integration (from Phase 1/2) to build on.
+- **`capt walkthrough <url> [--guide] [--ai]`** — the chained command itself.
+  With `BeatResult` and `run_guide()` already in place from Phase 1, this is
+  just:
+
+  ```python
+  result = run_beat(url, steps, out_dir)
+  if guide:
+      run_guide(result.cap_path, guide_out_dir, ai=ai)
+  ```
+
+  No new plumbing — this phase is where it actually gets wired into `cli.py`
+  and given a CLI surface (flags, `--json` output combining both results).
+
+- **Native app automation** — extends the step schema in
+  `capt/record/steps.py` beyond Playwright/browser actions to
+  Accessibility-driven native-app actions, e.g.
+  `{"action": "ax-click", "app": "Notes", "role": "AXButton", "title": "New Note"}`.
+  This is the least proven of the four capabilities folded into this design:
+  matching UI elements in arbitrary native apps is heuristic (role/title-based),
+  not clean DOM selectors, and behavior varies a lot by app. Rather than design
+  a general schema blind, this should start as *direction + one concrete
+  prototype app*, refined into its own design pass once there's a real
+  Accessibility integration (from Phase 1/2) to build on.
+
+## Language choice: staying in Python, not Rust or TypeScript
+
+Worth stating explicitly since Cap's own codebase uses neither: Cap is Rust
+(`apps/cli`, all `crates/*`, the Tauri desktop backend) and TypeScript
+(`apps/web` — Next.js; `apps/desktop/src` — the Tauri frontend UI). Nothing in
+`capt` needs to match that, because `capt` is not part of Cap's codebase — it's
+a standalone tool that drives Cap entirely through its public CLI
+(`cap ...` subprocess calls) and its documented `.cap`/`project-config.json`
+file format. That's the same relationship any external tool has to a CLI it
+wraps; the wrapped tool's implementation language is irrelevant to it.
+
+Python stays the right choice for `capt`, and this design leans on that harder,
+not less: Playwright's Python bindings are first-class, and `pyobjc` gives
+direct access to the Accessibility/Quartz APIs Phase 1's `macos_capture.py` and
+Phase 3's native-app automation need, with no Swift/Objective-C required.
+
+The one place Rust genuinely comes up is unrelated to this design: *if* the
+`cap doc` feature from `docs/upstream-proposal.md` ever gets contributed as an
+actual native subcommand merged into `CapSoftware/Cap`, that specific piece
+would need to be Rust, matching the crate it would live in
+(`crates/doc` / `cap-doc`) — which is exactly why that RFC already frames the
+Python `capt/guide/*` implementation as "a reference implementation the
+eventual Rust crate gets ported from," not something to be merged as-is. That's
+a separate, already-anticipated effort, not part of this macOS design.
 
 ## Explicitly out of scope for now
 
 - Fully unifying the Windows *invocation* (only the core logic is unified;
   the WSL→PowerShell→Windows hop stays, because the OS boundary is real).
-- The actual `capt walkthrough` chained command itself — Phase 1 lays the
-  groundwork (`BeatResult` dataclass, `run_guide()` extraction) so it's a small
-  addition later, but building the command is not part of this pass.
-- A general native-app step schema (that's Phase 3, sketched only).
+- A general native-app step schema beyond Phase 3's single prototype app.
+- Porting anything to Rust or TypeScript — see "Language choice" above.
