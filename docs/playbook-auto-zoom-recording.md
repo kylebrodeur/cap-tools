@@ -27,7 +27,7 @@ technique works end-to-end without manual multi-step orchestration.
   auto-zoom at the marked moments.
 
 If any step feels off, that's a reason to tune the workflow doc (or
-`build_zoom_segments`'s defaults in `capt/record/beat.py`) before submitting
+`build_zoom_segments`'s defaults in `capt/zoom.py`) before submitting
 the PR — not something to paper over.
 
 ## Prerequisites
@@ -88,7 +88,7 @@ the PR — not something to paper over.
 4. **Watch `test-walkthrough.mp4` and verify:**
    - Zoom kicks in ~0.5s before each marked moment and holds ~2.5s after it
      (the `build_zoom_segments` defaults) — if timing feels off, that signals a need
-     to tune the defaults in `capt/record/beat.py`, not just this one run.
+     to tune the defaults in `capt/zoom.py`, not just this one run.
    - Segments for markers placed close together merge into one continuous zoom
      instead of jarring in/out/in.
    - Anything you'd already configured in Studio (background, camera, cursor style)
