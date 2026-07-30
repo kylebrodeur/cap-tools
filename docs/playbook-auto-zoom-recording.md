@@ -46,10 +46,14 @@ the PR — not something to paper over.
 1. **Preflight**
 
    ```bash
-   capt doctor --json
+   capt preflight --marker-source steps+global-capture
    ```
 
-   Confirm that `cap` CLI is available and your system is ready for recording.
+   `capt` has no `doctor` command of its own — `capt preflight` is the real
+   equivalent: it checks `cap doctor`/`cap targets` internally, plus (since
+   this plan) the macOS Input Monitoring permission gate when
+   `--marker-source` includes `global-capture`. Confirm all gates pass before
+   continuing.
 
 2. **Run the one-shot recording with auto-zoom and export**
 
