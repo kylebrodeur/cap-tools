@@ -62,10 +62,46 @@ win/beat_runner_entry.py   # NEW — thin shim: parse argv → call capt.record.
 win/install.ps1            # extended: Copy-Item -Recurse the capt/ package tree to C:\cap-tools\capt\
                             # (same copy mechanism it already uses for win/*; no packaging/publishing needed)
 win/beat_runner.py          # → moved to win/_archive/ (superseded; matches this repo's existing _archive convention)
+
+capt/guide/pipeline.py     # NEW — run_guide(): ingest → (transcribe) → (structure if ai) → render,
+                            # extracted from today's inline logic in cli.py's `guide` command
 ```
 
 `capt/zoom.py`, `capt/config.py`, `capt/export.py` are unchanged — `run_beat()`
 calls them as-is.
+
+### Groundwork for the future chained command (not built now, but unblocked)
+
+The "record → zoom → export → guide" chained-command idea only needs two things
+to become a small future addition instead of a refactor: a stable data contract
+out of `run_beat()`, and the `guide` pipeline being callable the same way
+`run_beat()` is — as one function, not CLI-command-shaped logic.
+
+- **`BeatResult` becomes a real dataclass in `capt/record/beat.py`**
+  (`recording_id`, `cap_path`, `events`, `zoom_segments`, `export_path`), not an
+  ad hoc dict. `cap_path` is exactly what `capt/guide/ingest.py::ingest()`
+  already expects as its `project_path` argument — no shape translation needed
+  between the two halves.
+- **Extract `capt/guide/pipeline.py::run_guide(cap_path, out_dir, ai=False, ...)`**
+  from the ingest→transcribe→structure→render sequence currently inlined in
+  `cli.py`'s `guide()` command body. This is a behavior-preserving refactor —
+  `capt guide` calls the same function it always has, just now through one
+  reusable entry point instead of logic that only exists inside the CLI
+  command. This mirrors exactly what `run_beat()` already does for `record`:
+  centralize the pipeline as a function, let the CLI command be a thin wrapper
+  around it.
+
+With both of those in place, a future `capt walkthrough <url> --guide` command
+is just:
+
+```python
+result = run_beat(url, steps, out_dir)
+if guide:
+    run_guide(result.cap_path, guide_out_dir, ai=ai)
+```
+
+No new plumbing, no format translation — which is the point of doing this now
+rather than retrofitting it once both pipelines have grown independently.
 
 ### Data flow — one beat, either platform
 
@@ -98,7 +134,9 @@ calls them as-is.
 7. `build_zoom_segments(tracker.events())` → `read_config(path)` →
    `merge_zoom_segments` → `write_config(path, merged)`.
 8. Optional `export()` if `export_to` is set.
-9. Return `{recordingId, path, events, zoomSegments, exportPath?}`.
+9. Return a `BeatResult(recording_id, cap_path, events, zoom_segments, export_path)`
+   (see "Groundwork for the future chained command" below for why this is a
+   dataclass and not a loose dict).
 
 ### Where it forks by platform
 
@@ -187,7 +225,7 @@ Accessibility integration (from Phase 1/2) to build on.
 
 - Fully unifying the Windows *invocation* (only the core logic is unified;
   the WSL→PowerShell→Windows hop stays, because the OS boundary is real).
-- The "chain record → zoom → export → guide into one command" idea raised
-  earlier in this project — a plausible future stretch goal, not part of this
-  design.
+- The actual `capt walkthrough` chained command itself — Phase 1 lays the
+  groundwork (`BeatResult` dataclass, `run_guide()` extraction) so it's a small
+  addition later, but building the command is not part of this pass.
 - A general native-app step schema (that's Phase 3, sketched only).
