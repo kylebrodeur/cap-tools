@@ -54,6 +54,9 @@ class GlobalCapture:
         return event
 
     def start(self) -> None:
+        if self._tap is not None:
+            raise RuntimeError("GlobalCapture is already started — call stop() first")
+
         mask = (
             Quartz.CGEventMaskBit(Quartz.kCGEventLeftMouseDown)
             | Quartz.CGEventMaskBit(Quartz.kCGEventRightMouseDown)

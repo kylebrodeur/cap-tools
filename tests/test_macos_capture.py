@@ -1,9 +1,8 @@
-import sys
 from unittest.mock import MagicMock
 
 import pytest
 
-pytestmark = pytest.mark.skipif(sys.platform != "darwin", reason="macOS-only module")
+pytest.importorskip("Quartz")
 
 from capt.record.macos_capture import GlobalCapture, is_hotkey_event, HOTKEY_FLAGS, HOTKEY_KEYCODE
 import Quartz
@@ -41,3 +40,17 @@ def test_global_capture_start_and_stop_run_cleanly_when_permission_granted():
     capture = GlobalCapture(tracker)
     capture.start()
     capture.stop()
+
+
+def test_global_capture_start_twice_raises_without_stop():
+    # Calling start() again before stop() would otherwise leak the first
+    # tap/thread (orphaned, never torn down) since stop() only tears down
+    # whatever's currently referenced. Guard against that.
+    tracker = MagicMock()
+    capture = GlobalCapture(tracker)
+    capture.start()
+    try:
+        with pytest.raises(RuntimeError, match="already started"):
+            capture.start()
+    finally:
+        capture.stop()
