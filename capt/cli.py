@@ -105,71 +105,21 @@ def guide(project_path, ai, fmt, out, transcript, model, json_out):
     Pipeline: ingest → (transcribe) → (structure if --ai) → render.
     Deterministic by default; --ai enables LLM step-text generation.
     """
-    from capt.guide.ingest import ingest
-    from capt.guide.render import render
+    from capt.guide.pipeline import run_guide
 
     cap_path = Path(project_path)
     out_dir = out or f"output/{cap_path.stem}"
 
-    # Step 1: Ingest
     if json_out:
-        click.echo(json.dumps({"type": "Progress", "stage": "ingest"}))
-    result = ingest(str(cap_path), out_dir, transcript_path=transcript)
+        click.echo(json.dumps({"type": "Progress", "stage": "guide"}))
 
-    # Step 2: Structure (if --ai)
-    if ai:
-        if json_out:
-            click.echo(json.dumps({"type": "Progress", "stage": "structure"}))
-        from capt.guide.structure import structure
-        from capt.guide.transcribe import transcribe
+    result = run_guide(str(cap_path), out_dir, ai=ai, transcript_path=transcript,
+                       model=model, fmt=fmt)
 
-        # Transcribe audio if no transcript provided
-        transcript_path = transcript
-        if not transcript_path:
-            # Try to find audio-input.ogg in the .cap dir
-            audio = cap_path / "audio-input.ogg"
-            if audio.exists():
-                t_out = Path(out_dir) / "transcript.json"
-                transcribe(str(audio), out_path=str(t_out))
-                transcript_path = str(t_out)
-
-        if transcript_path:
-            items_out = Path(out_dir) / "items.json"
-            structure(transcript_path, str(items_out), model=model,
-                      title=result["title"], recording=result["title"])
-
-    # Step 3: Render
     if json_out:
-        click.echo(json.dumps({"type": "Progress", "stage": "render"}))
-
-    # Find display.mp4
-    display = cap_path / "display.mp4"
-    if not display.exists():
-        # Try segments
-        meta = json.loads((cap_path / "recording-meta.json").read_text())
-        segs = meta.get("segments", [])
-        if segs and "display" in segs[0]:
-            display = cap_path / segs[0]["display"]["path"]
-        elif "display" in meta:
-            display = cap_path / meta["display"]["path"]
-
-    items_path = Path(out_dir) / "items.json"
-    if items_path.exists():
-        render_result = render(str(items_path), str(display), out_dir, fmt=fmt)
+        click.echo(json.dumps({"type": "Completed", **result}))
     else:
-        # No AI — just the ingest output
-        render_result = {"html": str(Path(out_dir) / "guide.html"), "md": None}
-
-    if json_out:
-        click.echo(json.dumps({
-            "type": "Completed",
-            "path": out_dir,
-            "steps": result["step_count"],
-            "html": render_result.get("html"),
-            "md": render_result.get("md"),
-        }))
-    else:
-        click.echo(f"✓ Guide: {result['step_count']} steps -> {out_dir}")
+        click.echo(f"✓ Guide: {result['steps']} steps -> {result['path']}")
 
 
 # ── export ────────────────────────────────────────────────────────────────────
