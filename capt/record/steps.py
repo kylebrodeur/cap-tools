@@ -36,3 +36,49 @@ def validate_steps(steps: list) -> list:
         if action == "mark" and not step.get("label"):
             raise ValueError(f"step {i}: 'mark' requires 'label'")
     return steps
+
+
+from playwright.sync_api import sync_playwright
+
+
+def _run_step(page, step: dict, tracker) -> None:
+    action = step["action"]
+    if action == "goto":
+        page.goto(step["url"])
+        tracker.mark(step.get("label", "goto"))
+    elif action == "click":
+        page.click(step["selector"])
+        tracker.mark(step.get("label", f"click:{step['selector']}"))
+    elif action == "fill":
+        page.fill(step["selector"], step["text"])
+        tracker.mark(step.get("label", f"fill:{step['selector']}"))
+    elif action == "wait":
+        if "selector" in step:
+            page.wait_for_selector(step["selector"])
+        elif "text" in step:
+            page.wait_for_selector(f"text={step['text']}")
+        elif "ms" in step:
+            page.wait_for_timeout(step["ms"])
+    elif action == "mark":
+        tracker.mark(step["label"])
+
+
+def drive_steps(url, steps: list, tracker) -> None:
+    """Launch Playwright Chromium, optionally navigate to url, then drive
+    each step in order, marking `tracker` as described in `_run_step`.
+
+    Always closes the browser, even if a step raises.
+    """
+    validate_steps(steps)
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        try:
+            page = browser.new_page()
+            if url:
+                page.goto(url)
+                tracker.mark("page-load")
+            for step in steps:
+                _run_step(page, step, tracker)
+        finally:
+            browser.close()
