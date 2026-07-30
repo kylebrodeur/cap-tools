@@ -43,17 +43,21 @@ the PR — not something to paper over.
 
 ## Steps
 
-1. **Preflight**
+1. **Preflight and find a screen ID**
 
    ```bash
    capt preflight --marker-source steps+global-capture
+   cap targets --json
    ```
 
    `capt` has no `doctor` command of its own — `capt preflight` is the real
    equivalent: it checks `cap doctor`/`cap targets` internally, plus (since
    this plan) the macOS Input Monitoring permission gate when
-   `--marker-source` includes `global-capture`. Confirm all gates pass before
-   continuing.
+   `--marker-source` includes `global-capture`. Confirm all gates pass, then
+   note a screen ID from `cap targets --json`'s `screens` list — `capt record`
+   needs one explicitly (there's no default-primary-screen fallback in this
+   codebase's usage; every example, including Cap's own docs, always passes
+   `--screen`).
 
 2. **Run the one-shot recording with auto-zoom and export**
 
@@ -63,7 +67,7 @@ the PR — not something to paper over.
    the walkthrough by hand — replacing the old manual `capt zoom mark` step entirely:
 
    ```bash
-   capt record https://example.com --out recordings --marker-source steps+global-capture --export-to test-walkthrough.mp4 --json
+   capt record https://example.com --out recordings --screen <screen-id> --marker-source steps+global-capture --export-to test-walkthrough.mp4 --json
    ```
 
    **What this does:**
