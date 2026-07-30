@@ -120,6 +120,31 @@ def test_run_beat_global_capture_starts_and_stops_capture(tmp_path):
     fake_capture.stop.assert_called_once()
 
 
+def test_run_beat_stops_recording_even_if_capture_start_raises(tmp_path):
+    # Regression test: capture/tracker setup must live inside the try/finally
+    # so a failure in GlobalCapture.start() (e.g. missing Input Monitoring
+    # permission) still stops the already-running Cap session instead of
+    # orphaning it.
+    patches, mocks = _patch_all()
+    fake_capture = MagicMock()
+    fake_capture.start.side_effect = PermissionError("Input Monitoring not granted")
+    with patch("capt.record.macos_capture.GlobalCapture", return_value=fake_capture):
+        for p in patches:
+            p.start()
+        try:
+            with pytest.raises(PermissionError):
+                run_beat(
+                    url=None, steps=[], out_dir=str(tmp_path),
+                    marker_source="global-capture",
+                )
+        finally:
+            for p in patches:
+                p.stop()
+
+    mocks["_stop_recording"].assert_called_once_with("rec-1")
+    fake_capture.stop.assert_called_once()
+
+
 def test_run_beat_skips_driving_when_no_url_and_steps_marker_source(tmp_path):
     patches, mocks = _patch_all()
     for p in patches:

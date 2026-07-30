@@ -102,16 +102,19 @@ def run_beat(
     # _start_recording() blocks on Cap's session-readiness poll, which can
     # take real time. Creating the tracker (and starting global-capture)
     # only after the recording call returns keeps every elapsed_s offset
-    # accurate relative to the recording's own timeline.
-    tracker = create_tracker()
-
+    # accurate relative to the recording's own timeline. All of this lives
+    # inside the try/finally below so a failure anywhere in setup (e.g.
+    # GlobalCapture.start() hitting a missing Input Monitoring permission)
+    # still stops the already-running Cap session instead of orphaning it.
     capture = None
-    if "global-capture" in sources:
-        from capt.record.macos_capture import GlobalCapture
-        capture = GlobalCapture(tracker)
-        capture.start()
-
     try:
+        tracker = create_tracker()
+
+        if "global-capture" in sources:
+            from capt.record.macos_capture import GlobalCapture
+            capture = GlobalCapture(tracker)
+            capture.start()
+
         if "steps" in sources and (url or steps):
             drive_steps(url, steps, tracker)
     finally:
