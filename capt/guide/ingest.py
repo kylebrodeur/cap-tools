@@ -4,24 +4,32 @@ Port of guide/spike/cap_ingest.py. Pure post-processor over the Cap on-disk
 format. Reads recording-meta.json, cursor.json, display.mp4, and captions.json
 to produce a steps.json and guide.html.
 
-Video duration and frame extraction go through PyAV (the `av` package),
-which ships FFmpeg statically compiled into the wheel — no system ffmpeg/
-ffprobe binary, no PATH lookup, no risk of a Homebrew library-version
-mismatch breaking guide generation (as system ffmpeg once did here).
+Frame extraction prefers `cap export-preview` when the `cap` CLI is
+available: it renders through Cap's own native pipeline, so a screenshot
+reflects the project's actual zoom/crop/background effects (the auto-zoom
+capt record already applies) rather than a raw source-video frame. Falls
+back to PyAV (the `av` package, FFmpeg statically compiled into the wheel)
+when cap isn't installed or the call fails for any reason — the
+deterministic path still needs nothing beyond this package. Video duration
+always comes from PyAV either way; it's needed before cap is ever called.
 """
 
+import base64
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
 
 import av
 
+from capt.export import cap_bin
+
 # ── Config ────────────────────────────────────────────────────────────────────
 OFFSET_S = 0.5       # seconds after click to grab frame
 DEBOUNCE_MS = 400.0  # drop click within this ms of previous
 DEBOUNCE_DIST = 0.01  # ...and within this normalized distance
-JPEG_Q = 95           # Pillow JPEG quality (1=worst..95=best)
+JPEG_Q = 95           # Pillow JPEG quality (1=worst..95=best), PyAV fallback only
 
 
 def _video_duration(path: Path) -> float:
@@ -38,6 +46,18 @@ def _video_duration(path: Path) -> float:
             container.close()
     except av.FFmpegError:
         return 0.0
+
+
+def _video_dimensions(path: Path) -> Optional[tuple[int, int]]:
+    try:
+        container = av.open(str(path))
+        try:
+            stream = container.streams.video[0]
+            return stream.width, stream.height
+        finally:
+            container.close()
+    except av.FFmpegError:
+        return None
 
 
 def _load_meta(cap_dir: Path) -> dict:
@@ -96,6 +116,36 @@ def _pos_at(moves: list, t_ms: float) -> Optional[tuple]:
             break
     chosen = prev or moves[0]
     return chosen.get("x"), chosen.get("y")
+
+
+def _extract_frame_via_cap(cap_dir: Path, t_s: float, out: Path, fps: int, width: int, height: int) -> bool:
+    """Render a frame at a project-global timestamp through `cap
+    export-preview` — Cap's own native rendering pipeline (same decoders
+    and effects as `cap export`), not a raw source-video decode. Returns
+    False on any failure (cap missing, non-zero exit, bad JSON) so the
+    caller can fall back to PyAV; never raises."""
+    settings = json.dumps({
+        "fps": fps,
+        "resolution_base": {"x": width, "y": height},
+        "compression_bpp": 0.15,
+    })
+    try:
+        proc = subprocess.run(
+            [cap_bin(), "export-preview", str(cap_dir),
+             "--frame-time", f"{max(t_s, 0):.3f}", "--settings-json", settings, "--json"],
+            capture_output=True, text=True, timeout=30,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+    if proc.returncode != 0:
+        return False
+    try:
+        jpeg_bytes = base64.b64decode(json.loads(proc.stdout)["jpeg_base64"])
+    except (json.JSONDecodeError, KeyError, ValueError):
+        return False
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(jpeg_bytes)
+    return True
 
 
 def _extract_frame(display: Path, t_s: float, out: Path) -> bool:
@@ -185,6 +235,7 @@ def ingest(
     for si, seg in enumerate(segments):
         display = cap_dir / seg["display"]
         dur = _video_duration(display)
+        dims = _video_dimensions(display)
         clicks, moves = _load_cursor(cap_dir, seg["cursor"])
         downs = _meaningful_clicks(clicks)
 
@@ -207,7 +258,14 @@ def ingest(
                 t_extract = max(dur - 0.05, local_s)
 
             frame_out = frames_dir / f"step_{n:02d}_s{global_s:.1f}.jpg"
-            if not _extract_frame(display, t_extract, frame_out):
+            extracted = False
+            if dims:
+                extracted = _extract_frame_via_cap(
+                    cap_dir, global_s + offset_s, frame_out, seg["fps"], dims[0], dims[1],
+                )
+            if not extracted:
+                extracted = _extract_frame(display, t_extract, frame_out)
+            if not extracted:
                 continue
 
             steps.append({
