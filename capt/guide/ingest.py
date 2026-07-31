@@ -144,6 +144,7 @@ def ingest(
     out_dir: str,
     offset_s: float = OFFSET_S,
     transcript_path: Optional[str] = None,
+    fmt: str = "both",
 ) -> dict:
     """Ingest a Cap Studio .cap recording and produce steps + guide.
 
@@ -152,9 +153,11 @@ def ingest(
         out_dir: Output directory for frames and guide.
         offset_s: Seconds after click to grab frame.
         transcript_path: Optional path to external transcript JSON.
+        fmt: "html", "md", or "both" — which guide file(s) to write.
 
     Returns:
-        {"title": str, "steps": [...], "guide_html": str, "steps_json": str}
+        {"title": str, "steps": [...], "guide_html": str|None,
+         "guide_md": str|None, "steps_json": str}
     """
     cap_dir = Path(cap_path)
     if not cap_dir.exists():
@@ -228,14 +231,21 @@ def ingest(
     steps_data = {"title": title, "steps": steps}
     steps_json_path.write_text(json.dumps(steps_data, indent=2), encoding="utf-8")
 
-    # Write guide.html
-    guide_path = out / "guide.html"
-    guide_path.write_text(_render_html(title, steps, bool(caption_segments)), encoding="utf-8")
+    guide_html_path = None
+    if fmt in ("html", "both"):
+        guide_html_path = out / "guide.html"
+        guide_html_path.write_text(_render_html(title, steps, bool(caption_segments)), encoding="utf-8")
+
+    guide_md_path = None
+    if fmt in ("md", "both"):
+        guide_md_path = out / "guide.md"
+        guide_md_path.write_text(_render_markdown(title, steps, bool(caption_segments)), encoding="utf-8")
 
     return {
         "title": title,
         "steps": steps,
-        "guide_html": str(guide_path),
+        "guide_html": str(guide_html_path) if guide_html_path else None,
+        "guide_md": str(guide_md_path) if guide_md_path else None,
         "steps_json": str(steps_json_path),
         "step_count": len(steps),
         "has_captions": bool(caption_segments),
@@ -290,6 +300,17 @@ def _render_html(title: str, steps: list, has_captions: bool) -> str:
 </body></html>"""
 
 
+def _render_markdown(title: str, steps: list, has_captions: bool) -> str:
+    lines = [f"# {title}", "", f"{len(steps)} steps · ingested from a Cap Studio recording", ""]
+    if not has_captions:
+        lines += ["> No transcript in this recording. Steps are click-driven only.", ""]
+    for s in steps:
+        caption = s["text"] or f"Step {s['num']}"
+        lines += [f"## Step {s['num']} · {s['t']}s", "", caption, "",
+                  f"![Step {s['num']}]({s['frame']})", ""]
+    return "\n".join(lines)
+
+
 def main():
     import argparse
     ap = argparse.ArgumentParser(description="Build an illustrated guide from a Cap .cap recording")
@@ -297,17 +318,21 @@ def main():
     ap.add_argument("--out", default=None, help="Output directory")
     ap.add_argument("--offset", type=float, default=OFFSET_S)
     ap.add_argument("--transcript", default=None, help="External transcript JSON")
+    ap.add_argument("--format", default="both", choices=["html", "md", "both"])
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
     out_dir = args.out or f"output/{Path(args.cap).stem}"
-    result = ingest(args.cap, out_dir, args.offset, args.transcript)
+    result = ingest(args.cap, out_dir, args.offset, args.transcript, fmt=args.format)
 
     if args.json:
         print(json.dumps(result))
     else:
         print(f"OK: {result['step_count']} steps")
-        print(f"   guide      -> {result['guide_html']}")
+        if result["guide_html"]:
+            print(f"   guide.html -> {result['guide_html']}")
+        if result["guide_md"]:
+            print(f"   guide.md   -> {result['guide_md']}")
         print(f"   steps.json -> {result['steps_json']}")
 
 

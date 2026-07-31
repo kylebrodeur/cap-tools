@@ -10,19 +10,50 @@ def test_run_guide_deterministic_path_ingests_and_renders(tmp_path):
     (cap_dir / "display.mp4").write_bytes(b"")
     out_dir = tmp_path / "out"
 
-    fake_ingest = MagicMock(return_value={"title": "T", "step_count": 3})
+    fake_ingest = MagicMock(return_value={
+        "title": "T", "step_count": 3,
+        "guide_html": str(out_dir / "guide.html"), "guide_md": str(out_dir / "guide.md"),
+    })
     fake_render = MagicMock(return_value={"html": "out/guide.html", "md": None})
 
     with patch("capt.guide.ingest.ingest", fake_ingest), \
          patch("capt.guide.render.render", fake_render):
         result = run_guide(str(cap_dir), str(out_dir))
 
-    fake_ingest.assert_called_once_with(str(cap_dir), str(out_dir), transcript_path=None)
+    fake_ingest.assert_called_once_with(str(cap_dir), str(out_dir), transcript_path=None, fmt="both")
     # No items.json exists on this path (ingest is mocked and writes nothing,
     # and structure() never runs without --ai), so run_guide correctly takes
-    # the fallback branch and never calls render() — the html path below is
-    # the ingest-produced guide.html, not fake_render's mocked return value.
-    assert result == {"path": str(out_dir), "steps": 3, "html": str(out_dir / "guide.html"), "md": None}
+    # the fallback branch and never calls render() — html/md below come
+    # straight from ingest()'s own fmt-aware output, not fake_render's.
+    assert result == {
+        "path": str(out_dir), "steps": 3,
+        "html": str(out_dir / "guide.html"), "md": str(out_dir / "guide.md"),
+    }
+
+
+def test_run_guide_deterministic_path_honors_md_only_format(tmp_path):
+    # Regression test: the deterministic path used to hard-code
+    # {"html": ..., "md": None} in its fallback branch regardless of `fmt`,
+    # so `capt guide --format md` (or --format both) silently produced no
+    # markdown at all unless --ai was also given. ingest() is now fmt-aware
+    # and run_guide must pass its result straight through.
+    cap_dir = tmp_path / "full.cap"
+    cap_dir.mkdir()
+    (cap_dir / "display.mp4").write_bytes(b"")
+    out_dir = tmp_path / "out"
+
+    fake_ingest = MagicMock(return_value={
+        "title": "T", "step_count": 3,
+        "guide_html": None, "guide_md": str(out_dir / "guide.md"),
+    })
+
+    with patch("capt.guide.ingest.ingest", fake_ingest), \
+         patch("capt.guide.render.render", MagicMock()):
+        result = run_guide(str(cap_dir), str(out_dir), fmt="md")
+
+    fake_ingest.assert_called_once_with(str(cap_dir), str(out_dir), transcript_path=None, fmt="md")
+    assert result["html"] is None
+    assert result["md"] == str(out_dir / "guide.md")
 
 
 def test_run_guide_ai_path_transcribes_and_structures_without_out_path_kwarg(tmp_path):

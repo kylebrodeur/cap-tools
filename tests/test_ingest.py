@@ -1,9 +1,10 @@
+import json
 from pathlib import Path
 
 import av
 import pytest
 
-from capt.guide.ingest import _extract_frame, _video_duration
+from capt.guide.ingest import _extract_frame, _video_duration, ingest
 
 
 def _make_test_video(path: Path, duration_s: float = 2.0, fps: int = 10) -> None:
@@ -57,3 +58,42 @@ def test_extract_frame_returns_false_for_unreadable_file(tmp_path):
     out = tmp_path / "frames" / "step.jpg"
 
     assert _extract_frame(bogus, 1.0, out) is False
+
+
+def _make_cap_project(cap_dir: Path) -> None:
+    cap_dir.mkdir()
+    _make_test_video(cap_dir / "display.mp4", duration_s=2.0, fps=10)
+    (cap_dir / "recording-meta.json").write_text(json.dumps({
+        "pretty_name": "Test Recording",
+        "display": {"path": "display.mp4"},
+        "cursor": "cursor.json",
+    }))
+    (cap_dir / "cursor.json").write_text(json.dumps({
+        "clicks": [{"time_ms": 500, "down": True}, {"time_ms": 550, "down": False}],
+        "moves": [{"time_ms": 500, "x": 0.5, "y": 0.5}],
+    }))
+
+
+@pytest.mark.parametrize("fmt,expect_html,expect_md", [
+    ("both", True, True),
+    ("html", True, False),
+    ("md", False, True),
+])
+def test_ingest_honors_fmt(tmp_path, fmt, expect_html, expect_md):
+    # Regression test: ingest() used to always write guide.html and never
+    # wrote markdown at all, regardless of the caller's requested format —
+    # capt guide --format md (or --format both, without --ai) silently
+    # produced no markdown file.
+    cap_dir = tmp_path / "full.cap"
+    _make_cap_project(cap_dir)
+    out_dir = tmp_path / "out"
+
+    result = ingest(str(cap_dir), str(out_dir), fmt=fmt)
+
+    assert (result["guide_html"] is not None) == expect_html
+    assert (result["guide_md"] is not None) == expect_md
+    if expect_html:
+        assert Path(result["guide_html"]).exists()
+    if expect_md:
+        assert Path(result["guide_md"]).exists()
+        assert "Test Recording" in Path(result["guide_md"]).read_text()

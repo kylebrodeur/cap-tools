@@ -54,7 +54,7 @@ def run_guide(
     cap_dir = Path(cap_path)
     Path(out_dir).mkdir(parents=True, exist_ok=True)
 
-    result = ingest(str(cap_dir), out_dir, transcript_path=transcript_path)
+    result = ingest(str(cap_dir), out_dir, transcript_path=transcript_path, fmt=fmt)
 
     if ai:
         structure = _import_structure()
@@ -87,7 +87,7 @@ def run_guide(
     if items_path.exists():
         render_result = render(str(items_path), str(display), out_dir, fmt=fmt)
     else:
-        render_result = {"html": str(Path(out_dir) / "guide.html"), "md": None}
+        render_result = {"html": result.get("guide_html"), "md": result.get("guide_md")}
 
     return {
         "path": out_dir,
