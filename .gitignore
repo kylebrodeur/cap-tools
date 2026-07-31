@@ -1,5 +1,4 @@
 node_modules/
-.p i/
 null
 *.pyc
 __pycache__/
@@ -10,3 +9,6 @@ guide/spike/spike-output/
 
 # pi agent session state
 .pi/
+
+# Claude Code local session state (includes worktrees created via EnterWorktree)
+.claude/
