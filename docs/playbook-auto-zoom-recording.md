@@ -114,6 +114,37 @@ than just using it.
    segments from every click it saw, merges them into the project config,
    and exports.
 
+## Scripted recordings
+
+For a repeatable beat instead of a live walkthrough — the same demo run
+the same way every time — drive it with a `steps.json` file instead of
+`global-capture`. Each step is one of `goto`/`click`/`fill`/`wait`/`mark`;
+see `capt/record/steps.py` for the full schema. Example, verified live:
+
+```json
+[
+  {"action": "goto", "url": "https://example.com"},
+  {"action": "wait", "ms": 1000},
+  {"action": "click", "selector": "a"},
+  {"action": "mark", "label": "clicked-more-info-link"}
+]
+```
+
+```bash
+capt record --screen <screen-id> --steps steps.json --marker-source steps \
+  --export-to demo.mp4 --json
+```
+
+Each `goto`/`click`/`fill` and every explicit `mark` becomes a real event,
+the same as a live click does — the resulting zoom segments and export
+work identically either way. Playwright launches its own Chromium to drive
+this, visible only when a step actually needs a real page (a `url`, or a
+`goto`/`click`/`fill`) — pure `wait`/`mark` steps run it headless instead
+of popping up an empty, unused browser window.
+
+`--marker-source steps+global-capture` combines both: drive a scripted
+setup, then keep capturing real clicks on top of it.
+
 ## Watch the output
 
 Open the exported MP4 and check:
