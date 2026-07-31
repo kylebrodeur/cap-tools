@@ -2,12 +2,24 @@
 name = "cap-tools"
 version = "0.1.0"
 description = "Unified CLI for Cap screen recording automation and guide generation"
+readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "kylebrodeur" },
+]
 requires-python = ">=3.11"
 dependencies = [
     "click>=8.0",
     "playwright>=1.40",
     "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",
 ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Repository = "https://github.com/kylebrodeur/cap-tools"
 
 [project.scripts]
 capt = "capt.cli:main"
