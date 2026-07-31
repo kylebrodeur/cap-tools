@@ -2,6 +2,7 @@
 
 Commands:
     capt record <url> [--beat <name>]     Automate browser-driven recording
+    capt demo <name>                      Record a live narrated demo, defaults auto-filled
     capt guide <project.cap> [--ai]       Turn .cap into illustrated guide
     capt export <project.cap> <out.mp4>   Export .cap to MP4
     capt assemble <manifest.json>         Stitch clips into final video
@@ -170,6 +171,75 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
             }))
     else:
         click.echo(f"✓ Beat '{name}' recorded: {result.get('cap_path', '?')}")
+
+
+# ── demo ──────────────────────────────────────────────────────────────────────
+
+@main.command()
+@click.argument("name")
+@click.option("--out", default="recordings", help="Output directory")
+@click.option("--screen", default=None, help="Cap screen ID (auto-detected if omitted)")
+@click.option("--window", default=None, help="Cap window ID (captures just this window)")
+@click.option("--mic", default=None, help="Microphone device name (auto-detected if omitted)")
+@click.option("--no-mic", is_flag=True, help="Skip narration audio entirely")
+@click.option("--system-audio", is_flag=True, help="Also capture system audio")
+@click.option("--skip-preflight", is_flag=True, help="Skip the readiness check")
+def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight):
+    """Record a live, narrated demo with sensible defaults filled in.
+
+    Shortcut for `capt record --marker-source global-capture --until-enter`
+    with the screen, mic, and readiness check done for you — real clicks
+    become zoom markers automatically, and it keeps recording until you
+    press Enter. For scripted/repeatable beats, use `capt record` directly.
+    """
+    if screen and window:
+        raise click.UsageError("--screen and --window are mutually exclusive; pass one.")
+
+    if _is_wsl() or sys.platform != "darwin":
+        raise click.UsageError(
+            "capt demo needs global-capture (real click tracking), which is "
+            "macOS-only. Use `capt record --steps <file>` on this platform instead."
+        )
+
+    if not skip_preflight:
+        from capt.preflight import preflight as run_preflight
+        if not run_preflight(url=None, output_dir=out, require_playwright=False,
+                             marker_source="global-capture"):
+            click.echo("✗ Preflight failed — fix the above before recording.", err=True)
+            sys.exit(1)
+
+    from capt.targets import default_mic_name, default_screen_id, list_targets
+
+    targets = list_targets()
+    if not screen and not window:
+        if not targets:
+            raise click.UsageError(
+                "Could not auto-detect a screen (`cap targets --json` failed) — pass --screen or --window."
+            )
+        screen = default_screen_id(targets)
+        if not screen:
+            raise click.UsageError("No screens found — pass --window instead.")
+        click.echo(f"→ Using screen {screen} (auto-detected)")
+
+    if not no_mic and not mic and targets:
+        mic = default_mic_name(targets)
+        if mic:
+            click.echo(f"→ Using mic '{mic}' (auto-detected)")
+
+    from capt.record.beat import run_beat
+
+    export_path = str(Path(out) / f"{name}.mp4")
+    click.echo(f"Recording '{name}' — narrate your walkthrough now.")
+    result = run_beat(
+        None, [], out, name=name, screen_id=screen, window_id=window,
+        marker_source="global-capture", export_to=export_path,
+        mic=mic, system_audio=system_audio, until_enter=True,
+    )
+
+    click.echo(f"✓ Recorded: {result.cap_path}")
+    if result.export_path:
+        click.echo(f"  Exported: {result.export_path}")
+    click.echo(f"  Next: capt guide {result.cap_path} --format both")
 
 
 # ── guide ─────────────────────────────────────────────────────────────────────

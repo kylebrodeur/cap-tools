@@ -37,15 +37,20 @@ capt guide path/to/recording.cap --format both
 from `cap targets --json`) to capture just one window — the two are
 mutually exclusive.
 
-For a live, narrated walkthrough of unknown length (rather than a scripted
-`--steps` beat), add `--until-enter` to keep recording until you press
-Enter, and `--mic "<device>"` / `--system-audio` / `--camera <id>` (device
-names/ids from `cap targets --json`) to capture narration:
+For a live, narrated walkthrough (macOS only — no fixed length, no
+`--steps`), `capt demo` is a shortcut that auto-detects the screen and
+microphone and keeps recording until you press Enter:
 
 ```bash
-capt record --screen <id> --marker-source global-capture \
-  --mic "MacBook Pro Microphone" --until-enter --export-to demo.mp4 --json
+capt demo my-walkthrough                     # screen + mic auto-detected
+capt demo my-walkthrough --window <id>       # one window instead of the full screen
+capt demo my-walkthrough --no-mic            # skip narration audio
 ```
+
+That's shorthand for `capt record --marker-source global-capture
+--until-enter`, with `--mic "<device>"` / `--system-audio` / `--camera <id>`
+also available directly on `capt record` (device names/ids from
+`cap targets --json`) if you want more control than `capt demo` gives you.
 
 `capt record` runs in-process on macOS/Linux — no browser-automation hop
 required. On WSL it bridges to a Windows-hosted Cap Desktop install, since
