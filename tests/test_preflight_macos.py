@@ -1,8 +1,10 @@
-import sys
-
 import pytest
 
-pytestmark = pytest.mark.skipif(sys.platform != "darwin", reason="macOS-only module")
+# capt.preflight_macos transitively imports Quartz (via capt.record.macos_capture)
+# at module scope, so a skipif marker isn't enough — that only skips test
+# execution, not collection, and the bare import already crashes at collection
+# time on non-macOS. importorskip catches that and skips the whole module.
+pytest.importorskip("Quartz")
 
 from unittest.mock import MagicMock, patch
 
