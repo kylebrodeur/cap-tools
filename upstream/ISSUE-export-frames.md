@@ -107,12 +107,18 @@ and discoverability, not a missing capability:
   `ffprobe`/`ffmpeg` immediately for any downstream tool; (2) the batch
   frame-files export mode in `crates/export` — bigger, separate PR.
 
-**Implication for cap-tools itself**: `capt guide`'s PyAV vendoring (see
-`capt/guide/ingest.py`) stays the right call for now — it has zero
-dependency on Cap CLI being installed at all (`ingest()` reads a `.cap`
-directory's own files directly), which `cap export-preview` would not
-replace, only complement. Worth revisiting once file-output frame export
-ships: `export-preview`'s frames come out of Cap's own rendering pipeline
-(zoom/crop/background applied), which PyAV's raw decode does not give you —
-a real quality difference for the guide's screenshots, not just a
-dependency question.
+**Implication for cap-tools itself — integrated 2026-07-31**: `capt guide`
+now tries `cap export-preview` first for every frame (base64 JPEG decoded
+directly to the frame file — no file-output mode needed on Cap's side to
+use it today) and falls back automatically to the PyAV vendoring below when
+`cap` isn't installed or the call fails for any reason. Verified live both
+ways against a real recording: with `cap` on PATH and with it hidden from
+PATH, same correct resolution, genuinely different encoders (confirmed by
+differing output file sizes). See `capt/guide/ingest.py`'s
+`_extract_frame_via_cap`/`_extract_frame`.
+
+This issue's proposal — and the reply above — remain relevant regardless:
+a file-output batch mode (`--frames-at`/`--out-dir`) would still be a real
+win (fewer subprocess calls, no per-frame base64 round-trip), and listing
+`export-preview` in `cap guide`'s agent manifest remains the single
+highest-value fix on its own, per the maintainer's own read.
