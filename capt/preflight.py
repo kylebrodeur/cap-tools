@@ -18,10 +18,13 @@ from capt.export import cap_bin
 
 def _cap_json(*args: str) -> Optional[dict]:
     """Run cap --json and return parsed output."""
-    proc = subprocess.run(
-        [cap_bin()] + list(args) + ["--json"],
-        capture_output=True, text=True, timeout=30,
-    )
+    try:
+        proc = subprocess.run(
+            [cap_bin()] + list(args) + ["--json"],
+            capture_output=True, text=True, timeout=30,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
     if proc.returncode != 0:
         return None
     out = proc.stdout.strip()
