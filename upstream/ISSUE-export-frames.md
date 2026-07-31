@@ -1,10 +1,7 @@
 <!--
-Draft only — NOT posted. Per docs/upstream-agent-brief.md: a human submits this.
-Follows the same submission convention as upstream/ISSUE.md: freeform GitHub
-issue titled with the `[feature request]` convention + `enhancement` label
-(Discussions are disabled on CapSoftware/Cap; see that file for the fuller
-mechanics note). Share fuller detail in Cap's Discord per CONTRIBUTING.md,
-link the thread back into the issue once posted.
+POSTED 2026-07-31: https://github.com/CapSoftware/Cap/issues/2059
+Kept here as the source record. Not yet shared in Cap's Discord — do that
+per CONTRIBUTING.md and link the thread back into the issue when it happens.
 -->
 
 **[feature request] native frame-at-timestamp export (no external ffmpeg dependency for downstream tools)**
