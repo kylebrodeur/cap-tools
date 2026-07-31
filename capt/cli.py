@@ -45,8 +45,15 @@ def main():
               type=click.Choice(["steps", "global-capture", "steps+global-capture"]),
               help="How to collect zoom markers (global-capture is macOS-only)")
 @click.option("--export-to", default=None, help="Also export the recording to this MP4 path")
+@click.option("--mic", default=None, help="Microphone device name to record (see `cap targets mics`)")
+@click.option("--system-audio", is_flag=True, help="Capture system audio")
+@click.option("--camera", default=None, help="Camera device id to record (see `cap targets cameras`)")
+@click.option("--until-enter", is_flag=True,
+              help="Keep recording until you press Enter, instead of stopping as soon as any --steps finish "
+                   "(or immediately, if there are none) — for a live, unscripted-length walkthrough")
 @click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
-def record(url, name, out, screen, window, steps, marker_source, export_to, json_out):
+def record(url, name, out, screen, window, steps, marker_source, export_to,
+           mic, system_audio, camera, until_enter, json_out):
     """Automate a browser-driven screen recording with automatic zoom.
 
     On macOS/Linux, runs in-process (no PowerShell hop). On WSL, invokes the
@@ -60,7 +67,8 @@ def record(url, name, out, screen, window, steps, marker_source, export_to, json
         step_list = json.loads(Path(steps).read_text())
 
     if _is_wsl():
-        _record_via_windows(url, name, out, screen, window, steps, marker_source, export_to, json_out)
+        _record_via_windows(url, name, out, screen, window, steps, marker_source, export_to,
+                            mic, system_audio, camera, until_enter, json_out)
         return
 
     from capt.record.beat import run_beat
@@ -69,7 +77,8 @@ def record(url, name, out, screen, window, steps, marker_source, export_to, json
         click.echo(json.dumps({"type": "Progress", "stage": "recording"}))
 
     result = run_beat(url, step_list, out, name=name, screen_id=screen, window_id=window,
-                      marker_source=marker_source, export_to=export_to)
+                      marker_source=marker_source, export_to=export_to,
+                      mic=mic, system_audio=system_audio, camera=camera, until_enter=until_enter)
 
     if json_out:
         click.echo(json.dumps({
@@ -86,7 +95,8 @@ def record(url, name, out, screen, window, steps, marker_source, export_to, json
             click.echo(f"  Exported: {result.export_path}")
 
 
-def _record_via_windows(url, name, out, screen, window, steps, marker_source, export_to, json_out):
+def _record_via_windows(url, name, out, screen, window, steps, marker_source, export_to,
+                        mic, system_audio, camera, until_enter, json_out):
     """WSL -> PowerShell -> Windows beat_runner_entry.py, unchanged in spirit
     from the pre-macOS-support implementation."""
     from capt import tailscale
@@ -110,6 +120,14 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
         ps_cmd += f" --marker-source {marker_source}"
     if export_to:
         ps_cmd += f" --export-to {export_to}"
+    if mic:
+        ps_cmd += f" --mic {mic}"
+    if system_audio:
+        ps_cmd += " --system-audio"
+    if camera:
+        ps_cmd += f" --camera {camera}"
+    if until_enter:
+        ps_cmd += " --until-enter"
 
     if json_out:
         click.echo(json.dumps({"status": "running", "beat": name, "url": url}))

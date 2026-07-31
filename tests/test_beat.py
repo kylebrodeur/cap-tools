@@ -54,6 +54,29 @@ def test_start_recording_falls_back_to_screen_when_no_window():
     assert "--window" not in args
 
 
+def test_start_recording_passes_mic_system_audio_camera():
+    fake_run_cap_json = MagicMock(return_value={"recordingId": "rec-1"})
+    with patch("capt.record.beat._run_cap_json", fake_run_cap_json):
+        _start_recording("/tmp/full.cap", screen_id="1", mic="Built-in Microphone",
+                         system_audio=True, camera="0")
+
+    args = fake_run_cap_json.call_args[0]
+    assert "--mic" in args and "Built-in Microphone" in args
+    assert "--system-audio" in args
+    assert "--camera" in args and "0" in args
+
+
+def test_start_recording_omits_audio_camera_flags_when_not_given():
+    fake_run_cap_json = MagicMock(return_value={"recordingId": "rec-1"})
+    with patch("capt.record.beat._run_cap_json", fake_run_cap_json):
+        _start_recording("/tmp/full.cap", screen_id="1")
+
+    args = fake_run_cap_json.call_args[0]
+    assert "--mic" not in args
+    assert "--system-audio" not in args
+    assert "--camera" not in args
+
+
 def test_run_beat_passes_window_id_to_start_recording(tmp_path):
     patches, mocks = _patch_all()
     for p in patches:
@@ -224,6 +247,41 @@ def test_run_beat_skips_driving_when_no_url_and_steps_marker_source(tmp_path):
     mocks["drive_steps"].assert_not_called()
 
 
+def test_run_beat_until_enter_blocks_on_input_before_stopping(tmp_path):
+    # Regression test: marker_source="global-capture" alone (no steps/url)
+    # used to start capture and immediately stop again, since nothing told
+    # run_beat to keep going — useless for a live, unscripted-length
+    # recording. until_enter blocks on a keypress before the finally block
+    # runs _stop_recording.
+    patches, mocks = _patch_all()
+    for p in patches:
+        p.start()
+    try:
+        with patch("builtins.input", return_value="") as fake_input:
+            run_beat(url=None, steps=[], out_dir=str(tmp_path),
+                     marker_source="steps", until_enter=True)
+    finally:
+        for p in patches:
+            p.stop()
+
+    fake_input.assert_called_once()
+    mocks["_stop_recording"].assert_called_once_with("rec-1")
+
+
+def test_run_beat_without_until_enter_does_not_block_on_input(tmp_path):
+    patches, mocks = _patch_all()
+    for p in patches:
+        p.start()
+    try:
+        with patch("builtins.input") as fake_input:
+            run_beat(url=None, steps=[], out_dir=str(tmp_path), marker_source="steps")
+    finally:
+        for p in patches:
+            p.stop()
+
+    fake_input.assert_not_called()
+
+
 def test_run_beat_continues_to_export_when_config_step_raises_system_exit(tmp_path, capsys):
     # capt.config.read_config/write_config actually call sys.exit(...) on a real
     # `cap project config get/set` subprocess failure, not a plain Exception —
@@ -259,7 +317,7 @@ def test_run_beat_creates_tracker_after_start_recording(tmp_path):
     # systematically shifting zoom segments early.
     call_order = []
 
-    def fake_start_recording(cap_path, screen_id, window_id=None):
+    def fake_start_recording(cap_path, screen_id, window_id=None, mic=None, system_audio=False, camera=None):
         call_order.append("start_recording")
         return {"recordingId": "rec-1"}
 
@@ -289,7 +347,7 @@ def test_run_beat_starts_global_capture_after_start_recording(tmp_path):
     # after the recording call returns.
     call_order = []
 
-    def fake_start_recording(cap_path, screen_id, window_id=None):
+    def fake_start_recording(cap_path, screen_id, window_id=None, mic=None, system_audio=False, camera=None):
         call_order.append("start_recording")
         return {"recordingId": "rec-1"}
 

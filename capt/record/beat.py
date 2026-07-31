@@ -70,12 +70,25 @@ def _run_cap_json(*args: str, timeout: int = 30) -> dict:
     raise RuntimeError(f"cap {' '.join(args)} returned unparseable output: {out!r}")
 
 
-def _start_recording(cap_path: str, screen_id: Optional[str], window_id: Optional[str] = None) -> dict:
+def _start_recording(
+    cap_path: str,
+    screen_id: Optional[str],
+    window_id: Optional[str] = None,
+    mic: Optional[str] = None,
+    system_audio: bool = False,
+    camera: Optional[str] = None,
+) -> dict:
     args = ["record", "start", "--detach", "--path", cap_path]
     if window_id:
         args += ["--window", window_id]
     elif screen_id:
         args += ["--screen", screen_id]
+    if mic:
+        args += ["--mic", mic]
+    if system_audio:
+        args += ["--system-audio"]
+    if camera:
+        args += ["--camera", camera]
     event = _run_cap_json(*args)
     if "recordingId" not in event:
         raise RuntimeError(f"cap record start did not return a recordingId: {event}")
@@ -103,6 +116,10 @@ def run_beat(
     marker_source: str = "steps",
     zoom_amount: float = 2.0,
     export_to: Optional[str] = None,
+    mic: Optional[str] = None,
+    system_audio: bool = False,
+    camera: Optional[str] = None,
+    until_enter: bool = False,
 ) -> BeatResult:
     """Run one beat: record, drive/capture markers, stop, build+merge zoom,
     optionally export.
@@ -115,6 +132,12 @@ def run_beat(
     window_id, when given, captures that specific window instead of the
     whole screen (screen_id is ignored in that case) — narrower capture
     scope for a single browser window rather than the full display.
+
+    until_enter blocks on a keypress (after any steps finish driving) before
+    stopping — for a live, unscripted-length recording (e.g. narrating a
+    walkthrough) where there's no way to know the duration up front. Without
+    it, marker_source="global-capture" alone (no steps/url) would start and
+    immediately stop, since nothing else would tell run_beat to keep going.
     """
     from capt.record.steps import drive_steps
 
@@ -124,7 +147,8 @@ def run_beat(
 
     sources = marker_source.split("+")
 
-    started = _start_recording(cap_path, screen_id, window_id=window_id)
+    started = _start_recording(cap_path, screen_id, window_id=window_id,
+                               mic=mic, system_audio=system_audio, camera=camera)
     recording_id = started["recordingId"]
 
     # The marker clock must be anchored to when the recording actually
@@ -147,6 +171,9 @@ def run_beat(
 
         if "steps" in sources and (url or steps):
             drive_steps(url, steps, tracker)
+
+        if until_enter:
+            input("Recording — press Enter to stop... ")
     finally:
         try:
             if capture is not None:
