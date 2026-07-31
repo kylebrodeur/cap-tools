@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * SOURCE: an internal reference project/the source project/scripts/record-studio.cjs
+ * SOURCE: an internal reference project's scripts/record-studio.cjs
  * ROLE: Reference implementation — Node.js Playwright CDP driver.
  * Connects to an existing Chrome CDP window and drives named UI beats
  * while Cap records the screen. Handles overlay dismissal, model warm-up,
@@ -13,7 +13,7 @@
  *
  * Studio recording driver using npm/pnpm-based Playwright (CommonJS).
  *
- * Run from WSL inside the source project/:
+ * Run from WSL inside the source project's root:
  *   npx playwright install chromium   # one-time
  *   node scripts/record-studio.cjs
  *
@@ -30,7 +30,7 @@ const { exec, execSync, spawn } = require('child_process');
 const fs = require('fs');
 const { chromium } = require('playwright');
 
-const SPACE_URL = process.env.SPACE_URL || 'https://node.your-target-app.example.com';
+const SPACE_URL = process.env.SPACE_URL || 'https://your-target-app.example.com';
 const CDP_URL = process.env.CDP_URL || 'http://172.25.144.1:9222';
 const CAP_FPS = '60';
 const SKIP_CAP = process.argv.includes('--skip-cap');

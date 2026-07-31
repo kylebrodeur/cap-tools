@@ -11,7 +11,7 @@
 # Reuses the same Chrome CDP window; starts/stops Cap per beat so each beat
 # becomes a clean, short clip in Cap Studio.
 #
-# Usage from WSL inside the source project/:
+# Usage from WSL inside the source project's root:
 #   ./record-beat.sh load
 #   ./record-beat.sh slice
 #   ./record-beat.sh second

@@ -7,7 +7,7 @@
 #
 """Recording preflight checks (cap-cli + Space + playwright + output dir).
 
-Run from `the source project/`:
+Run from the source project's root:
 
     uv run python -m scripts.record_preflight
 
