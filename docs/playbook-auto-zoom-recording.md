@@ -1,109 +1,156 @@
-# Playbook — testing "Record a multi-step walkthrough with automatic zoom"
+# Playbook — recording a walkthrough with automatic zoom
 
-Validates, end to end on a real Cap install, the workflow proposed in the
-`upstream/` PR branch (`apps/web/content/docs/agents/workflows.mdx`,
-branch `agents-workflows-auto-zoom-recording` on the `kylebrodeur/Cap` fork)
-before it gets pushed and opened as a real PR.
+Every command below has been run for real on a macOS machine against a live
+Cap install (most recently 2026-07-31, after a live-capture regression on
+this machine turned out to be a stale ScreenCaptureKit session in Cap
+Desktop itself — fixed by quitting and relaunching Cap, confirmed via
+`cap doctor`'s `captureReady` field; not a `capt` bug, but worth knowing if
+a live recording ever fails with a display/decode error for no obvious
+reason).
 
-The upstream doc is tool-agnostic — any agent can do the "read config, build
-segments, merge, confirm, write" steps itself with plain `cap` commands. This
-repo provides a reference implementation: the `capt record` command with
-`--marker-source steps+global-capture` and `--export-to` support now integrates
-marking, zoom building, merging, and export into a single operation (see
-`capt/record/beat.py`, `capt/cli.py`). Testing with this command validates the
-technique works end-to-end without manual multi-step orchestration.
-
-## What this validates
-
-- `capt record` with `--marker-source steps+global-capture` captures real user
-  interactions (clicks, keystrokes) without requiring manual mark entry.
-- Zoom segments built from captured markers land where you'd expect when
-  exported (i.e. the `pre_seconds`/`hold_seconds` defaults in
-  `build_zoom_segments` feel right, not too early/late/short).
-- Zoom segment merging into the existing config doesn't clobber other config
-  fields (background, camera, cursor, etc. from whatever you'd already set
-  in Studio).
-- The `--export-to` flag on `capt record` produces an export that shows
-  auto-zoom at the marked moments.
-
-If any step feels off, that's a reason to tune the workflow doc (or
-`build_zoom_segments`'s defaults in `capt/zoom.py`) before submitting
-the PR — not something to paper over.
+This also validates the technique behind the `apps/web/content/docs/agents/
+workflows.mdx` addition drafted in `upstream/workflows-mdx-addition.md` (not
+yet a PR — see that file's header) before it's submitted upstream: any
+agent can do the "track elapsed time, build zoom segments, merge, export"
+steps itself with plain `cap` commands; this repo's `capt` is a reference
+implementation proving the technique works end to end.
 
 ## Prerequisites
 
-- Cap Desktop installed, with at least one **Studio**-mode recording capability
-  (not Instant mode — Instant recordings have no per-stream cursor/zoom data).
-- `cap` CLI resolvable — from WSL, `source skills/cap-cli/setup.sh` first (or
-  `cap agents install` per the redirect noted in that skill's `SKILL.md`).
-- This repo's Python env: `uv sync` (installs `capt` + the new `pytest` dev
-  dependency; already verified with `uv run pytest tests/` — 10/10 passing for
-  the pure `build_zoom_segments`/`merge_zoom_segments` logic before you touch
-  a real recording).
+- Cap Desktop installed, in **Studio** mode (Instant recordings have no
+  per-segment cursor/zoom data). `curl -fsSL https://cap.so/install-cli.sh | sh`
+  installs both the desktop app and the `cap` CLI shim.
+- This repo's Python env: `uv sync`.
+- macOS Input Monitoring permission granted to whatever terminal runs
+  `capt` — `capt preflight` (below) checks this and tells you if it's
+  missing.
 
-## Steps
+## The short path: `capt demo`
 
-1. **Preflight and find a screen ID**
+For a live, narrated walkthrough — no pre-written script, no fixed
+duration — `capt demo` wraps everything below into one command:
+
+```bash
+capt demo my-walkthrough                       # screen + mic auto-detected
+capt demo my-walkthrough --window <id>         # one window instead of the full screen
+```
+
+It runs preflight, picks the primary screen (or first microphone) from
+`cap targets --json` unless you override them, then records with real
+click-tracking (`--marker-source global-capture`) until **you stop it from
+Cap's own UI** (menu bar icon / Studio's Stop button) — not a keypress, so
+nothing you type or click during the demo itself can end the recording
+early. When it's done:
+
+```
+✓ Recorded: recordings/my-walkthrough.cap
+  Exported: recordings/my-walkthrough.mp4
+  Next: capt guide recordings/my-walkthrough.cap --format both
+```
+
+Skip to [Watch the output](#watch-the-output) below. The rest of this doc
+is the manual, step-by-step version — useful if you want more control than
+`capt demo` gives you, or if you're validating the technique itself rather
+than just using it.
+
+## Manual steps
+
+1. **Preflight, then find a screen or window ID**
 
    ```bash
    capt preflight --marker-source steps+global-capture
    cap targets --json
    ```
 
-   `capt` has no `doctor` command of its own — `capt preflight` is the real
-   equivalent: it checks `cap doctor`/`cap targets` internally, plus (since
-   this plan) the macOS Input Monitoring permission gate when
-   `--marker-source` includes `global-capture`. Confirm all gates pass, then
-   note a screen ID from `cap targets --json`'s `screens` list — `capt record`
-   needs one explicitly (there's no default-primary-screen fallback in this
-   codebase's usage; every example, including Cap's own docs, always passes
-   `--screen`).
+   Confirm every gate passes. `capt preflight` checks `cap` is resolvable,
+   a screen target exists, Playwright's installed, the output dir is
+   writable, and — on macOS, when `--marker-source` includes
+   `global-capture` — that Input Monitoring is actually granted (it does
+   **not** shell out to `cap doctor`; that's a separate, Cap-native
+   diagnostic worth running yourself if a live recording ever behaves
+   strangely — see the note at the top of this doc).
 
-2. **Run the one-shot recording with auto-zoom and export**
+   Take a screen ID from `cap targets --json`'s `screens` list, or a
+   window ID from its `windows` list — `capt record` needs one explicitly
+   passed via `--screen` or `--window` (there's no default-primary-screen
+   fallback).
 
-   In a single command, `capt record` now handles marking, zoom-building, merging,
-   and export. The `--marker-source steps+global-capture` flag captures every real
-   click and keystroke (plus Cmd+Shift+M for manual labeled marks) while you drive
-   the walkthrough by hand — replacing the old manual `capt zoom mark` step entirely:
+2. **Start the recording**
+
+   For a live, unscripted walkthrough (the case this playbook validates),
+   use `--marker-source global-capture` (real clicks only, no Playwright)
+   with `--until-stopped` — **the `--until-stopped` flag is required** for
+   this to work as an interactive session. Without it, with no `--steps`
+   to drive, the recording starts and immediately stops again — there's
+   nothing else telling it to keep going. (Confirmed directly: the same
+   command without `--until-stopped` finished in under 7 seconds end to
+   end, with no window to actually interact with anything.)
 
    ```bash
-   capt record https://example.com --out recordings --screen <screen-id> --marker-source steps+global-capture --export-to test-walkthrough.mp4 --json
+   capt record --screen <screen-id> --marker-source global-capture --until-stopped \
+     --mic "<device name>" --export-to test-walkthrough.mp4 --json
    ```
 
-   **What this does:**
-   - Records the screen capture at the target URL (or local server).
-   - Listens for every real user interaction (clicks, keyboard) and Cmd+Shift+M marks.
-   - Internally builds zoom segments around each marked moment (0.5s before, 2.5s after by default).
-   - Merges the zoom segments into the project config without clobbering other settings.
-   - Exports directly to `test-walkthrough.mp4`.
+   (`--mic` is optional — omit it for a silent recording. Device names
+   come from `cap targets --json`'s `mics` list. **The first time you use
+   `--mic` (or `--camera`/`--system-audio`) on a given machine**, check
+   `cap doctor --json`'s `permissions.microphone` field first — if it's
+   `notDetermined` rather than `granted`, the recording will hang and then
+   fail with "timed out waiting for the recording to start" instead of
+   prompting for permission, since there's no interactive session to grant
+   it from a backgrounded CLI call. Grant microphone access to Cap Desktop
+   once via System Settings → Privacy & Security → Microphone, or trigger
+   the permission prompt by starting one recording with `--mic` from Cap's
+   own Studio UI first, then retry.)
 
 3. **Perform the walkthrough**
 
-   While the command is running, interact with the screen normally:
-   - Click, type, and navigate as you would in a typical walkthrough.
-   - Press Cmd+Shift+M at meaningful moments if you want to add explicit labeled marks
-     (optional — every real click is already captured).
-   - When done, the export completes automatically.
+   Click, type, and navigate as you normally would. Press Cmd+Shift+M at
+   any moment for an explicit labeled mark (optional — every real click is
+   already captured automatically). When you're done, **stop the
+   recording from Cap's own UI** — its menu bar icon, or Studio's Stop
+   button. The command finishes on its own once it notices (it polls
+   `cap record status`, typically within about a second), builds zoom
+   segments from every click it saw, merges them into the project config,
+   and exports.
 
-4. **Watch `test-walkthrough.mp4` and verify:**
-   - Zoom kicks in ~0.5s before each marked moment and holds ~2.5s after it
-     (the `build_zoom_segments` defaults) — if timing feels off, that signals a need
-     to tune the defaults in `capt/zoom.py`, not just this one run.
-   - Segments for markers placed close together merge into one continuous zoom
-     instead of jarring in/out/in.
-   - Anything you'd already configured in Studio (background, camera, cursor style)
-     survived — this is what `merge_zoom_segments` is for.
+## Watch the output
+
+Open the exported MP4 and check:
+- Zoom kicks in shortly before each real click and holds a couple of
+  seconds after it (`build_zoom_segments`'s `pre_seconds`/`hold_seconds`
+  defaults in `capt/zoom.py`) — if timing feels off, that's a signal to
+  tune those defaults, not just re-record.
+- Clicks placed close together merge into one continuous zoom instead of
+  jarring in/out/in.
+- Anything already configured in Studio (background, camera, cursor
+  style) survived — `merge_zoom_segments` does a read-merge-write, never a
+  blind overwrite.
+
+Then turn the recording into an illustrated guide from the same `.cap`:
+
+```bash
+capt guide recordings/my-walkthrough.cap --format both
+```
 
 ## If it all checks out
 
-The documented workflow is validated against a real recording. At that point:
-push the `agents-workflows-auto-zoom-recording` branch to the
-`kylebrodeur/Cap` fork and open the PR against `CapSoftware/Cap` — nothing
-about the PR content depends on `capt`; it only had to prove the technique
-works.
+The technique's validated against a real recording. The upstream doc
+addition (`upstream/workflows-mdx-addition.md`) describes the same
+pattern in Cap-native terms (`cap record start`/`stop`, manual zoom-segment
+merge, `cap export`) for any agent to follow without `capt` — that's what's
+ready to become a real PR against `CapSoftware/Cap`, once submitted.
 
 ## If something's off
 
-Note exactly what (wrong timing, clobbered fields, missed markers) — that feeds
-back into either `capt/record/beat.py`'s defaults or a wording fix in the
-workflow doc itself before it goes upstream.
+- **Wrong zoom timing or clobbered config fields**: note exactly what, and
+  feed it back into `capt/record/beat.py`'s defaults or a wording fix in
+  the upstream doc draft.
+- **A live recording fails with a display/decode error** (e.g. "no
+  decodable frames", a bare `"display"` error) despite `capt preflight`
+  passing: run `cap doctor --json` and check `captureReady` /
+  `screenCaptureKit`. A long-running Cap Desktop session can end up with a
+  stale ScreenCaptureKit state that `capt preflight` doesn't catch (it only
+  checks the Input Monitoring permission, not live capture health) — quit
+  and relaunch Cap Desktop, then re-check `cap doctor` before assuming it's
+  a `capt` bug.

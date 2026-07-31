@@ -1,3 +1,4 @@
+import json
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
@@ -34,6 +35,38 @@ def test_demo_auto_detects_screen_and_mic(tmp_path):
     assert kwargs["marker_source"] == "global-capture"
     assert kwargs["until_stopped"] is True
     assert "auto-detected" in result.output
+
+
+def test_demo_json_emits_completed_event(tmp_path):
+    with patch("capt.cli._is_wsl", return_value=False), \
+         patch("sys.platform", "darwin"), \
+         patch("capt.preflight.preflight", return_value=True), \
+         patch("capt.targets.list_targets", return_value=FAKE_TARGETS), \
+         patch("capt.record.beat.run_beat", return_value=_fake_result(tmp_path)):
+        runner = CliRunner()
+        result = runner.invoke(main, ["demo", "my-demo", "--out", str(tmp_path), "--json"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output.strip().splitlines()[-1])
+    assert payload["type"] == "Completed"
+    assert payload["recordingId"] == "rec-1"
+    assert payload["capPath"] == str(tmp_path / "my-demo.cap")
+    # --json suppresses the human-readable auto-detect lines
+    assert "auto-detected" not in result.output
+
+
+def test_demo_json_emits_error_event_on_preflight_failure(tmp_path):
+    with patch("capt.cli._is_wsl", return_value=False), \
+         patch("sys.platform", "darwin"), \
+         patch("capt.preflight.preflight", return_value=False), \
+         patch("capt.record.beat.run_beat") as run_beat_mock:
+        runner = CliRunner()
+        result = runner.invoke(main, ["demo", "my-demo", "--out", str(tmp_path), "--json"])
+
+    assert result.exit_code != 0
+    payload = json.loads(result.output.strip().splitlines()[-1])
+    assert payload["type"] == "Error"
+    run_beat_mock.assert_not_called()
 
 
 def test_demo_respects_explicit_screen_and_mic(tmp_path):

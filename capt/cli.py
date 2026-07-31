@@ -185,7 +185,8 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
 @click.option("--no-mic", is_flag=True, help="Skip narration audio entirely")
 @click.option("--system-audio", is_flag=True, help="Also capture system audio")
 @click.option("--skip-preflight", is_flag=True, help="Skip the readiness check")
-def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight):
+@click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
+def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight, json_out):
     """Record a live, narrated demo with sensible defaults filled in.
 
     Shortcut for `capt record --marker-source global-capture --until-stopped`
@@ -207,7 +208,10 @@ def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight):
         from capt.preflight import preflight as run_preflight
         if not run_preflight(url=None, output_dir=out, require_playwright=False,
                              marker_source="global-capture"):
-            click.echo("✗ Preflight failed — fix the above before recording.", err=True)
+            if json_out:
+                click.echo(json.dumps({"type": "Error", "error": "preflight failed"}))
+            else:
+                click.echo("✗ Preflight failed — fix the above before recording.", err=True)
             sys.exit(1)
 
     from capt.targets import default_mic_name, default_screen_id, list_targets
@@ -221,22 +225,37 @@ def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight):
         screen = default_screen_id(targets)
         if not screen:
             raise click.UsageError("No screens found — pass --window instead.")
-        click.echo(f"→ Using screen {screen} (auto-detected)")
+        if not json_out:
+            click.echo(f"→ Using screen {screen} (auto-detected)")
 
     if not no_mic and not mic and targets:
         mic = default_mic_name(targets)
-        if mic:
+        if mic and not json_out:
             click.echo(f"→ Using mic '{mic}' (auto-detected)")
 
     from capt.record.beat import run_beat
 
     export_path = str(Path(out) / f"{name}.mp4")
-    click.echo(f"Recording '{name}' — narrate your walkthrough now.")
+    if json_out:
+        click.echo(json.dumps({"type": "Progress", "stage": "recording"}))
+    else:
+        click.echo(f"Recording '{name}' — narrate your walkthrough now.")
     result = run_beat(
         None, [], out, name=name, screen_id=screen, window_id=window,
         marker_source="global-capture", export_to=export_path,
         mic=mic, system_audio=system_audio, until_stopped=True,
     )
+
+    if json_out:
+        click.echo(json.dumps({
+            "type": "Completed",
+            "recordingId": result.recording_id,
+            "capPath": result.cap_path,
+            "events": result.events,
+            "zoomSegments": result.zoom_segments,
+            "exportPath": result.export_path,
+        }))
+        return
 
     click.echo(f"✓ Recorded: {result.cap_path}")
     if result.export_path:
