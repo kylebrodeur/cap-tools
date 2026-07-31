@@ -24,6 +24,30 @@ def test_record_calls_run_beat_in_process_when_not_wsl(tmp_path):
     assert payload["capPath"] == str(tmp_path / "full.cap")
 
 
+def test_record_forwards_window_id_to_run_beat(tmp_path):
+    fake_result = BeatResult(
+        recording_id="rec-1", cap_path=str(tmp_path / "full.cap"),
+        events=[], zoom_segments=[], export_path=None,
+    )
+    with patch("capt.cli._is_wsl", return_value=False), \
+         patch("capt.record.beat.run_beat", return_value=fake_result) as run_beat_mock:
+        runner = CliRunner()
+        result = runner.invoke(main, ["record", "https://example.com", "--out", str(tmp_path),
+                                       "--window", "683", "--json"])
+
+    assert result.exit_code == 0
+    assert run_beat_mock.call_args.kwargs.get("window_id") == "683"
+
+
+def test_record_rejects_screen_and_window_together(tmp_path):
+    runner = CliRunner()
+    result = runner.invoke(main, ["record", "https://example.com", "--out", str(tmp_path),
+                                   "--screen", "1", "--window", "683"])
+
+    assert result.exit_code != 0
+    assert "mutually exclusive" in result.output
+
+
 def test_record_uses_powershell_hop_when_wsl(tmp_path):
     # The Windows side reports a BeatResult as snake_case JSON (asdict of
     # BeatResult); the --json output must be remapped into the SAME

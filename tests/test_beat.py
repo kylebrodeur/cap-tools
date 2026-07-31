@@ -2,7 +2,64 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from capt.record.beat import BeatResult, run_beat
+from capt.record.beat import BeatResult, _run_cap_json, _start_recording, run_beat
+
+
+def test_run_cap_json_parses_pretty_printed_multiline_output():
+    # Regression test: `cap project validate` returns pretty-printed,
+    # multi-line JSON (unlike record start/stop's compact single line).
+    # The old implementation only tried json.loads(out.splitlines()[-1]),
+    # which is just "}" for pretty output — always a JSONDecodeError.
+    pretty = (
+        '{\n'
+        '  "projectPath": "/tmp/full.cap",\n'
+        '  "valid": true,\n'
+        '  "checks": [\n'
+        '    {"role": "recordingMeta", "exists": true}\n'
+        '  ]\n'
+        '}'
+    )
+    fake_proc = MagicMock(returncode=0, stdout=pretty, stderr="")
+    with patch("subprocess.run", return_value=fake_proc):
+        result = _run_cap_json("project", "validate", "/tmp/full.cap")
+
+    assert result["valid"] is True
+    assert result["projectPath"] == "/tmp/full.cap"
+
+
+def test_start_recording_uses_window_over_screen_when_both_given():
+    fake_run_cap_json = MagicMock(return_value={"recordingId": "rec-1"})
+    with patch("capt.record.beat._run_cap_json", fake_run_cap_json):
+        _start_recording("/tmp/full.cap", screen_id="1", window_id="683")
+
+    args = fake_run_cap_json.call_args[0]
+    assert "--window" in args and "683" in args
+    assert "--screen" not in args
+
+
+def test_start_recording_falls_back_to_screen_when_no_window():
+    fake_run_cap_json = MagicMock(return_value={"recordingId": "rec-1"})
+    with patch("capt.record.beat._run_cap_json", fake_run_cap_json):
+        _start_recording("/tmp/full.cap", screen_id="1")
+
+    args = fake_run_cap_json.call_args[0]
+    assert "--screen" in args and "1" in args
+    assert "--window" not in args
+
+
+def test_run_beat_passes_window_id_to_start_recording(tmp_path):
+    patches, mocks = _patch_all()
+    for p in patches:
+        p.start()
+    try:
+        run_beat(url="https://example.com", steps=[], out_dir=str(tmp_path), window_id="683")
+    finally:
+        for p in patches:
+            p.stop()
+
+    mocks["_start_recording"].assert_called_once()
+    _, kwargs = mocks["_start_recording"].call_args
+    assert kwargs.get("window_id") == "683"
 
 
 def _patch_all(**overrides):
@@ -193,7 +250,7 @@ def test_run_beat_creates_tracker_after_start_recording(tmp_path):
     # systematically shifting zoom segments early.
     call_order = []
 
-    def fake_start_recording(cap_path, screen_id):
+    def fake_start_recording(cap_path, screen_id, window_id=None):
         call_order.append("start_recording")
         return {"recordingId": "rec-1"}
 
@@ -222,7 +279,7 @@ def test_run_beat_starts_global_capture_after_start_recording(tmp_path):
     # after the recording call returns.
     call_order = []
 
-    def fake_start_recording(cap_path, screen_id):
+    def fake_start_recording(cap_path, screen_id, window_id=None):
         call_order.append("start_recording")
         return {"recordingId": "rec-1"}
 

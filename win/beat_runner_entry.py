@@ -20,6 +20,7 @@ def main():
     ap.add_argument("url", nargs="?", default=None)
     ap.add_argument("out_dir")
     ap.add_argument("--screen", default=None)
+    ap.add_argument("--window", default=None)
     ap.add_argument("--steps", default=None)
     ap.add_argument("--marker-source", default="steps")
     ap.add_argument("--export-to", default=None)
@@ -33,7 +34,7 @@ def main():
 
     result = run_beat(
         args.url, step_list, args.out_dir, name=args.name,
-        screen_id=args.screen, marker_source=args.marker_source,
+        screen_id=args.screen, window_id=args.window, marker_source=args.marker_source,
         export_to=args.export_to,
     )
     print(json.dumps(asdict(result)))

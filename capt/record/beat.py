@@ -27,7 +27,9 @@ class BeatResult:
 
 
 def _run_cap_json(*args: str, timeout: int = 30) -> dict:
-    """Run `cap <args> --json` and parse the single-line JSON response.
+    """Run `cap <args> --json` and parse its JSON response — compact
+    single-line (record start/stop) or pretty-printed multi-line
+    (project validate) alike.
 
     Raises RuntimeError with the command's error output on failure, so a
     beat's failure reason is always visible, never swallowed.
@@ -41,15 +43,38 @@ def _run_cap_json(*args: str, timeout: int = 30) -> dict:
         raise RuntimeError(f"cap {' '.join(args)} failed: {proc.stderr.strip() or out}")
     if not out:
         return {}
+    # Whole output is a single JSON value — the common case, compact or
+    # pretty-printed alike.
     try:
-        return json.loads(out.splitlines()[-1])
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"cap {' '.join(args)} returned unparseable output: {out!r}") from e
+        return json.loads(out)
+    except json.JSONDecodeError:
+        pass
+    # Fallback: skip any non-JSON preamble, then track brace/bracket depth
+    # to isolate the JSON payload from surrounding log noise.
+    depth = 0
+    buf = []
+    started = False
+    for line in out.splitlines():
+        stripped = line.strip()
+        if not started:
+            if stripped.startswith("{") or stripped.startswith("["):
+                started = True
+        if started:
+            buf.append(line)
+            depth += stripped.count("{") + stripped.count("[") - stripped.count("}") - stripped.count("]")
+            if depth == 0 and buf:
+                try:
+                    return json.loads("\n".join(buf))
+                except json.JSONDecodeError as e:
+                    raise RuntimeError(f"cap {' '.join(args)} returned unparseable output: {out!r}") from e
+    raise RuntimeError(f"cap {' '.join(args)} returned unparseable output: {out!r}")
 
 
-def _start_recording(cap_path: str, screen_id: Optional[str]) -> dict:
+def _start_recording(cap_path: str, screen_id: Optional[str], window_id: Optional[str] = None) -> dict:
     args = ["record", "start", "--detach", "--path", cap_path]
-    if screen_id:
+    if window_id:
+        args += ["--window", window_id]
+    elif screen_id:
         args += ["--screen", screen_id]
     event = _run_cap_json(*args)
     if "recordingId" not in event:
@@ -74,6 +99,7 @@ def run_beat(
     out_dir: str,
     name: str = "full",
     screen_id: Optional[str] = None,
+    window_id: Optional[str] = None,
     marker_source: str = "steps",
     zoom_amount: float = 2.0,
     export_to: Optional[str] = None,
@@ -85,6 +111,10 @@ def run_beat(
     fill/goto/explicit-mark actions), "global-capture" (macOS-only — capture
     real clicks/keystrokes system-wide via capt.record.macos_capture, no
     steps.json required), or "steps+global-capture" for both at once.
+
+    window_id, when given, captures that specific window instead of the
+    whole screen (screen_id is ignored in that case) — narrower capture
+    scope for a single browser window rather than the full display.
     """
     from capt.record.steps import drive_steps
 
@@ -94,7 +124,7 @@ def run_beat(
 
     sources = marker_source.split("+")
 
-    started = _start_recording(cap_path, screen_id)
+    started = _start_recording(cap_path, screen_id, window_id=window_id)
     recording_id = started["recordingId"]
 
     # The marker clock must be anchored to when the recording actually
