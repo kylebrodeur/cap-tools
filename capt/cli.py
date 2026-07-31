@@ -49,12 +49,13 @@ def main():
 @click.option("--mic", default=None, help="Microphone device name to record (see `cap targets mics`)")
 @click.option("--system-audio", is_flag=True, help="Capture system audio")
 @click.option("--camera", default=None, help="Camera device id to record (see `cap targets cameras`)")
-@click.option("--until-enter", is_flag=True,
-              help="Keep recording until you press Enter, instead of stopping as soon as any --steps finish "
-                   "(or immediately, if there are none) — for a live, unscripted-length walkthrough")
+@click.option("--until-stopped", is_flag=True,
+              help="Keep recording until you stop it from Cap's own UI (menu bar icon), instead of stopping "
+                   "as soon as any --steps finish (or immediately, if there are none) — for a live, "
+                   "unscripted-length walkthrough")
 @click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
 def record(url, name, out, screen, window, steps, marker_source, export_to,
-           mic, system_audio, camera, until_enter, json_out):
+           mic, system_audio, camera, until_stopped, json_out):
     """Automate a browser-driven screen recording with automatic zoom.
 
     On macOS/Linux, runs in-process (no PowerShell hop). On WSL, invokes the
@@ -69,7 +70,7 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
 
     if _is_wsl():
         _record_via_windows(url, name, out, screen, window, steps, marker_source, export_to,
-                            mic, system_audio, camera, until_enter, json_out)
+                            mic, system_audio, camera, until_stopped, json_out)
         return
 
     from capt.record.beat import run_beat
@@ -79,7 +80,7 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
 
     result = run_beat(url, step_list, out, name=name, screen_id=screen, window_id=window,
                       marker_source=marker_source, export_to=export_to,
-                      mic=mic, system_audio=system_audio, camera=camera, until_enter=until_enter)
+                      mic=mic, system_audio=system_audio, camera=camera, until_stopped=until_stopped)
 
     if json_out:
         click.echo(json.dumps({
@@ -97,7 +98,7 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
 
 
 def _record_via_windows(url, name, out, screen, window, steps, marker_source, export_to,
-                        mic, system_audio, camera, until_enter, json_out):
+                        mic, system_audio, camera, until_stopped, json_out):
     """WSL -> PowerShell -> Windows beat_runner_entry.py, unchanged in spirit
     from the pre-macOS-support implementation."""
     from capt import tailscale
@@ -127,8 +128,8 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
         ps_cmd += " --system-audio"
     if camera:
         ps_cmd += f" --camera {camera}"
-    if until_enter:
-        ps_cmd += " --until-enter"
+    if until_stopped:
+        ps_cmd += " --until-stopped"
 
     if json_out:
         click.echo(json.dumps({"status": "running", "beat": name, "url": url}))
@@ -187,10 +188,11 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
 def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight):
     """Record a live, narrated demo with sensible defaults filled in.
 
-    Shortcut for `capt record --marker-source global-capture --until-enter`
+    Shortcut for `capt record --marker-source global-capture --until-stopped`
     with the screen, mic, and readiness check done for you — real clicks
-    become zoom markers automatically, and it keeps recording until you
-    press Enter. For scripted/repeatable beats, use `capt record` directly.
+    become zoom markers automatically, and it keeps recording until you stop
+    it from Cap's own UI (menu bar icon). For scripted/repeatable beats, use
+    `capt record` directly.
     """
     if screen and window:
         raise click.UsageError("--screen and --window are mutually exclusive; pass one.")
@@ -233,7 +235,7 @@ def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight):
     result = run_beat(
         None, [], out, name=name, screen_id=screen, window_id=window,
         marker_source="global-capture", export_to=export_path,
-        mic=mic, system_audio=system_audio, until_enter=True,
+        mic=mic, system_audio=system_audio, until_stopped=True,
     )
 
     click.echo(f"✓ Recorded: {result.cap_path}")

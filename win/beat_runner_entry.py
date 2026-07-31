@@ -27,7 +27,7 @@ def main():
     ap.add_argument("--mic", default=None)
     ap.add_argument("--system-audio", action="store_true")
     ap.add_argument("--camera", default=None)
-    ap.add_argument("--until-enter", action="store_true")
+    ap.add_argument("--until-stopped", action="store_true")
     args = ap.parse_args()
 
     from capt.record.beat import run_beat
@@ -41,7 +41,7 @@ def main():
         screen_id=args.screen, window_id=args.window, marker_source=args.marker_source,
         export_to=args.export_to,
         mic=args.mic, system_audio=args.system_audio, camera=args.camera,
-        until_enter=args.until_enter,
+        until_stopped=args.until_stopped,
     )
     print(json.dumps(asdict(result)))
 

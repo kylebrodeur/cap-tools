@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from capt.record.steps import validate_steps, _run_step, drive_steps
+from capt.record.steps import validate_steps, _run_step, drive_steps, _needs_visible_browser
 
 
 def test_validate_steps_accepts_valid_goto():
@@ -178,3 +178,64 @@ def test_drive_steps_skips_navigation_when_no_url():
 
     fake_page.goto.assert_not_called()
     tracker.mark.assert_called_once_with("manual-step")
+
+
+def test_needs_visible_browser_true_when_url_given():
+    assert _needs_visible_browser("https://example.com", []) is True
+
+
+def test_needs_visible_browser_true_for_goto_click_or_fill_steps():
+    assert _needs_visible_browser(None, [{"action": "goto", "url": "https://example.com"}]) is True
+    assert _needs_visible_browser(None, [{"action": "click", "selector": "#go"}]) is True
+    assert _needs_visible_browser(None, [{"action": "fill", "selector": "#f", "text": "x"}]) is True
+
+
+def test_needs_visible_browser_false_for_pure_wait_and_mark_steps():
+    # Regression test: a recording that's just holding a timer open (e.g.
+    # wait+mark steps alongside global-capture, narrating over some other
+    # window) used to pop up a visible, unused Chromium window with nothing
+    # in it — pure noise during a take.
+    steps = [{"action": "wait", "ms": 1000}, {"action": "mark", "label": "m"}]
+    assert _needs_visible_browser(None, steps) is False
+
+
+def test_needs_visible_browser_false_for_no_url_and_no_steps():
+    assert _needs_visible_browser(None, []) is False
+
+
+def test_drive_steps_launches_headless_when_nothing_needs_visibility():
+    tracker = MagicMock()
+    fake_page = MagicMock()
+    fake_browser = MagicMock()
+    fake_browser.new_page.return_value = fake_page
+    fake_chromium = MagicMock()
+    fake_chromium.launch.return_value = fake_browser
+    fake_pw = MagicMock()
+    fake_pw.chromium = fake_chromium
+    fake_pw_cm = MagicMock()
+    fake_pw_cm.__enter__.return_value = fake_pw
+    fake_pw_cm.__exit__.return_value = False
+
+    with patch("capt.record.steps.sync_playwright", return_value=fake_pw_cm):
+        drive_steps(None, [{"action": "wait", "ms": 500}], tracker)
+
+    fake_chromium.launch.assert_called_once_with(headless=True)
+
+
+def test_drive_steps_launches_headed_when_url_given():
+    tracker = MagicMock()
+    fake_page = MagicMock()
+    fake_browser = MagicMock()
+    fake_browser.new_page.return_value = fake_page
+    fake_chromium = MagicMock()
+    fake_chromium.launch.return_value = fake_browser
+    fake_pw = MagicMock()
+    fake_pw.chromium = fake_chromium
+    fake_pw_cm = MagicMock()
+    fake_pw_cm.__enter__.return_value = fake_pw
+    fake_pw_cm.__exit__.return_value = False
+
+    with patch("capt.record.steps.sync_playwright", return_value=fake_pw_cm):
+        drive_steps("https://example.com", [], tracker)
+
+    fake_chromium.launch.assert_called_once_with(headless=False)

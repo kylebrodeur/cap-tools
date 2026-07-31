@@ -8,9 +8,10 @@ WSL — see docs/superpowers/specs/2026-07-30-macos-record-support-design.md.
 
 import json
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from capt.config import read_config, write_config
 from capt.export import cap_bin, export as cap_export
@@ -26,7 +27,7 @@ class BeatResult:
     export_path: Optional[str] = None
 
 
-def _run_cap_json(*args: str, timeout: int = 30) -> dict:
+def _run_cap_json(*args: str, timeout: int = 30) -> Union[dict, list]:
     """Run `cap <args> --json` and parse its JSON response — compact
     single-line (record start/stop) or pretty-printed multi-line
     (project validate) alike.
@@ -95,11 +96,43 @@ def _start_recording(
     return event
 
 
-def _stop_recording(recording_id: str) -> dict:
-    event = _run_cap_json("record", "stop", "--id", recording_id)
+def _stop_recording(recording_id: str, cap_path: Optional[str] = None) -> dict:
+    try:
+        event = _run_cap_json("record", "stop", "--id", recording_id)
+    except RuntimeError as e:
+        # If the user already stopped this recording directly from Cap's own
+        # UI (menu bar icon / Studio's Stop button), `cap record stop`
+        # correctly refuses to stop it again ("No recording session found
+        # with id ..."), rather than raising here as a beat failure — that
+        # already-stopped recording's own on-disk metadata is what actually
+        # confirms it finished, not our (now redundant) stop call.
+        if "No recording session found" in str(e) and cap_path and \
+                (Path(cap_path) / "recording-meta.json").exists():
+            return {"recordingMetaExists": True}
+        raise
     if not event.get("recordingMetaExists"):
         raise RuntimeError(f"cap record stop did not confirm recordingMetaExists: {event}")
     return event
+
+
+def _is_recording_alive(recording_id: str) -> bool:
+    sessions = _run_cap_json("record", "status")
+    if not isinstance(sessions, list):
+        return False
+    return any(s.get("recordingId") == recording_id and s.get("alive") for s in sessions)
+
+
+def _wait_for_external_stop(recording_id: str, poll_interval: float = 1.0) -> None:
+    """Block until Cap itself reports this recording is no longer active —
+    i.e. until the user stops it from Cap's own UI (menu bar icon / Studio's
+    Stop button). Polling `cap record status` rather than reading a keypress
+    from this terminal means an ordinary Enter press during the demo itself
+    (e.g. running a real command in the same terminal) never ends the
+    recording by accident.
+    """
+    print("Recording — stop it from Cap's own UI (menu bar icon) when you're done.")
+    while _is_recording_alive(recording_id):
+        time.sleep(poll_interval)
 
 
 def _validate_project(cap_path: str) -> dict:
@@ -119,7 +152,7 @@ def run_beat(
     mic: Optional[str] = None,
     system_audio: bool = False,
     camera: Optional[str] = None,
-    until_enter: bool = False,
+    until_stopped: bool = False,
 ) -> BeatResult:
     """Run one beat: record, drive/capture markers, stop, build+merge zoom,
     optionally export.
@@ -133,11 +166,14 @@ def run_beat(
     whole screen (screen_id is ignored in that case) — narrower capture
     scope for a single browser window rather than the full display.
 
-    until_enter blocks on a keypress (after any steps finish driving) before
-    stopping — for a live, unscripted-length recording (e.g. narrating a
+    until_stopped waits (after any steps finish driving) for the user to
+    stop the recording from Cap's own UI (menu bar icon / Studio's Stop
+    button), for a live, unscripted-length recording (e.g. narrating a
     walkthrough) where there's no way to know the duration up front. Without
     it, marker_source="global-capture" alone (no steps/url) would start and
     immediately stop, since nothing else would tell run_beat to keep going.
+    Deliberately doesn't read a keypress from this terminal — that would
+    treat an ordinary Enter press during the demo itself as a stop signal.
     """
     from capt.record.steps import drive_steps
 
@@ -172,14 +208,14 @@ def run_beat(
         if "steps" in sources and (url or steps):
             drive_steps(url, steps, tracker)
 
-        if until_enter:
-            input("Recording — press Enter to stop... ")
+        if until_stopped:
+            _wait_for_external_stop(recording_id)
     finally:
         try:
             if capture is not None:
                 capture.stop()
         finally:
-            _stop_recording(recording_id)
+            _stop_recording(recording_id, cap_path=cap_path)
 
     _validate_project(cap_path)
 

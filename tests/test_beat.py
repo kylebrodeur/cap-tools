@@ -3,7 +3,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from capt.record.beat import BeatResult, _run_cap_json, _start_recording, run_beat
+from capt.record.beat import (
+    BeatResult, _is_recording_alive, _run_cap_json, _start_recording,
+    _stop_recording, _wait_for_external_stop, run_beat,
+)
 
 # These tests patch capt.record.macos_capture.GlobalCapture, which requires
 # Quartz (macOS-only) — patch()'s target resolution imports that module to
@@ -136,7 +139,7 @@ def test_run_beat_happy_path_returns_beat_result(tmp_path):
     assert result.cap_path == str(tmp_path / "full.cap")
     assert result.export_path is None
     mocks["drive_steps"].assert_called_once()
-    mocks["_stop_recording"].assert_called_once_with("rec-1")
+    mocks["_stop_recording"].assert_called_once_with("rec-1", cap_path=str(tmp_path / "full.cap"))
     mocks["write_config"].assert_called_once()
 
 
@@ -151,7 +154,7 @@ def test_run_beat_stops_recording_even_if_driving_raises(tmp_path):
         for p in patches:
             p.stop()
 
-    mocks["_stop_recording"].assert_called_once_with("rec-1")
+    mocks["_stop_recording"].assert_called_once_with("rec-1", cap_path=str(tmp_path / "full.cap"))
 
 
 def test_run_beat_continues_to_export_if_zoom_merge_fails(tmp_path, capsys):
@@ -230,7 +233,7 @@ def test_run_beat_stops_recording_even_if_capture_start_raises(tmp_path):
             for p in patches:
                 p.stop()
 
-    mocks["_stop_recording"].assert_called_once_with("rec-1")
+    mocks["_stop_recording"].assert_called_once_with("rec-1", cap_path=str(tmp_path / "full.cap"))
     fake_capture.stop.assert_called_once()
 
 
@@ -247,39 +250,98 @@ def test_run_beat_skips_driving_when_no_url_and_steps_marker_source(tmp_path):
     mocks["drive_steps"].assert_not_called()
 
 
-def test_run_beat_until_enter_blocks_on_input_before_stopping(tmp_path):
+def test_run_beat_until_stopped_waits_for_external_stop_before_stopping(tmp_path):
     # Regression test: marker_source="global-capture" alone (no steps/url)
     # used to start capture and immediately stop again, since nothing told
     # run_beat to keep going — useless for a live, unscripted-length
-    # recording. until_enter blocks on a keypress before the finally block
-    # runs _stop_recording.
+    # recording. until_stopped waits for Cap's own UI to report the
+    # recording as no longer active before the finally block runs
+    # _stop_recording — deliberately not a keypress (see beat.py docstring).
     patches, mocks = _patch_all()
     for p in patches:
         p.start()
     try:
-        with patch("builtins.input", return_value="") as fake_input:
+        with patch("capt.record.beat._wait_for_external_stop") as fake_wait:
             run_beat(url=None, steps=[], out_dir=str(tmp_path),
-                     marker_source="steps", until_enter=True)
+                     marker_source="steps", until_stopped=True)
     finally:
         for p in patches:
             p.stop()
 
-    fake_input.assert_called_once()
-    mocks["_stop_recording"].assert_called_once_with("rec-1")
+    fake_wait.assert_called_once_with("rec-1")
+    mocks["_stop_recording"].assert_called_once_with("rec-1", cap_path=str(tmp_path / "full.cap"))
 
 
-def test_run_beat_without_until_enter_does_not_block_on_input(tmp_path):
+def test_run_beat_without_until_stopped_does_not_wait(tmp_path):
     patches, mocks = _patch_all()
     for p in patches:
         p.start()
     try:
-        with patch("builtins.input") as fake_input:
+        with patch("capt.record.beat._wait_for_external_stop") as fake_wait:
             run_beat(url=None, steps=[], out_dir=str(tmp_path), marker_source="steps")
     finally:
         for p in patches:
             p.stop()
 
-    fake_input.assert_not_called()
+    fake_wait.assert_not_called()
+
+
+def test_is_recording_alive_true_when_session_present_and_alive():
+    sessions = [{"recordingId": "rec-1", "alive": True}, {"recordingId": "rec-2", "alive": True}]
+    with patch("capt.record.beat._run_cap_json", return_value=sessions):
+        assert _is_recording_alive("rec-1") is True
+
+
+def test_is_recording_alive_false_when_session_absent():
+    with patch("capt.record.beat._run_cap_json", return_value=[]):
+        assert _is_recording_alive("rec-1") is False
+
+
+def test_is_recording_alive_false_when_session_present_but_not_alive():
+    sessions = [{"recordingId": "rec-1", "alive": False}]
+    with patch("capt.record.beat._run_cap_json", return_value=sessions):
+        assert _is_recording_alive("rec-1") is False
+
+
+def test_wait_for_external_stop_polls_until_not_alive():
+    with patch("capt.record.beat._is_recording_alive", side_effect=[True, True, False]) as fake_alive, \
+         patch("capt.record.beat.time.sleep") as fake_sleep:
+        _wait_for_external_stop("rec-1", poll_interval=0.01)
+
+    assert fake_alive.call_count == 3
+    assert fake_sleep.call_count == 2
+
+
+def test_stop_recording_tolerates_already_stopped_externally(tmp_path):
+    # Regression test: if the user stops the recording directly from Cap's
+    # own UI, cap record stop --id <id> errors with "No recording session
+    # found" (verified against the real CLI) — that must not be treated as
+    # a beat failure when the recording's own metadata confirms it finished.
+    cap_dir = tmp_path / "full.cap"
+    cap_dir.mkdir()
+    (cap_dir / "recording-meta.json").write_text("{}")
+
+    with patch("capt.record.beat._run_cap_json",
+               side_effect=RuntimeError("cap record stop failed: error: No recording session found with id 'rec-1'")):
+        result = _stop_recording("rec-1", cap_path=str(cap_dir))
+
+    assert result == {"recordingMetaExists": True}
+
+
+def test_stop_recording_reraises_when_meta_missing(tmp_path):
+    cap_dir = tmp_path / "full.cap"
+    cap_dir.mkdir()  # no recording-meta.json — genuinely never finished
+
+    with patch("capt.record.beat._run_cap_json",
+               side_effect=RuntimeError("cap record stop failed: error: No recording session found with id 'rec-1'")):
+        with pytest.raises(RuntimeError, match="No recording session found"):
+            _stop_recording("rec-1", cap_path=str(cap_dir))
+
+
+def test_stop_recording_reraises_other_errors_unchanged():
+    with patch("capt.record.beat._run_cap_json", side_effect=RuntimeError("cap record stop failed: boom")):
+        with pytest.raises(RuntimeError, match="boom"):
+            _stop_recording("rec-1", cap_path="/tmp/doesnt-matter.cap")
 
 
 def test_run_beat_continues_to_export_when_config_step_raises_system_exit(tmp_path, capsys):
@@ -422,4 +484,4 @@ def test_run_beat_stops_recording_even_if_capture_stop_raises(tmp_path):
             for p in patches:
                 p.stop()
 
-    mocks["_stop_recording"].assert_called_once_with("rec-1")
+    mocks["_stop_recording"].assert_called_once_with("rec-1", cap_path=str(tmp_path / "full.cap"))

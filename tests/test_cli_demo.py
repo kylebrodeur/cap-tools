@@ -32,7 +32,7 @@ def test_demo_auto_detects_screen_and_mic(tmp_path):
     assert kwargs["screen_id"] == "1"
     assert kwargs["mic"] == "MacBook Pro Microphone"
     assert kwargs["marker_source"] == "global-capture"
-    assert kwargs["until_enter"] is True
+    assert kwargs["until_stopped"] is True
     assert "auto-detected" in result.output
 
 

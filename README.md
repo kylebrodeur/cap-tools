@@ -39,7 +39,9 @@ mutually exclusive.
 
 For a live, narrated walkthrough (macOS only — no fixed length, no
 `--steps`), `capt demo` is a shortcut that auto-detects the screen and
-microphone and keeps recording until you press Enter:
+microphone and keeps recording until you stop it from **Cap's own UI**
+(menu bar icon) — not a keypress, so nothing you type or press during the
+demo itself can end the recording early:
 
 ```bash
 capt demo my-walkthrough                     # screen + mic auto-detected
@@ -48,7 +50,7 @@ capt demo my-walkthrough --no-mic            # skip narration audio
 ```
 
 That's shorthand for `capt record --marker-source global-capture
---until-enter`, with `--mic "<device>"` / `--system-audio` / `--camera <id>`
+--until-stopped`, with `--mic "<device>"` / `--system-audio` / `--camera <id>`
 also available directly on `capt record` (device names/ids from
 `cap targets --json`) if you want more control than `capt demo` gives you.
 
