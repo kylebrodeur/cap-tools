@@ -3,33 +3,40 @@
 Port of guide/spike/cap_ingest.py. Pure post-processor over the Cap on-disk
 format. Reads recording-meta.json, cursor.json, display.mp4, and captions.json
 to produce a steps.json and guide.html.
+
+Video duration and frame extraction go through PyAV (the `av` package),
+which ships FFmpeg statically compiled into the wheel — no system ffmpeg/
+ffprobe binary, no PATH lookup, no risk of a Homebrew library-version
+mismatch breaking guide generation (as system ffmpeg once did here).
 """
 
 import json
-import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
+
+import av
 
 # ── Config ────────────────────────────────────────────────────────────────────
 OFFSET_S = 0.5       # seconds after click to grab frame
 DEBOUNCE_MS = 400.0  # drop click within this ms of previous
 DEBOUNCE_DIST = 0.01  # ...and within this normalized distance
-JPEG_Q = 2            # ffmpeg quality (1=best..31=worst)
+JPEG_Q = 95           # Pillow JPEG quality (1=worst..95=best)
 
 
-def _run(cmd: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, capture_output=True, text=True)
-
-
-def _ffprobe_duration(path: Path) -> float:
-    r = _run([
-        "ffprobe", "-v", "error", "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1", str(path),
-    ])
+def _video_duration(path: Path) -> float:
     try:
-        return float(r.stdout.strip())
-    except ValueError:
+        container = av.open(str(path))
+        try:
+            stream = container.streams.video[0]
+            if stream.duration is not None:
+                return float(stream.duration * stream.time_base)
+            if container.duration is not None:
+                return float(container.duration) / av.time_base
+            return 0.0
+        finally:
+            container.close()
+    except av.FFmpegError:
         return 0.0
 
 
@@ -93,10 +100,25 @@ def _pos_at(moves: list, t_ms: float) -> Optional[tuple]:
 
 def _extract_frame(display: Path, t_s: float, out: Path) -> bool:
     out.parent.mkdir(parents=True, exist_ok=True)
-    _run([
-        "ffmpeg", "-ss", f"{max(t_s, 0):.3f}", "-i", str(display),
-        "-vframes", "1", "-q:v", str(JPEG_Q), "-y", str(out),
-    ])
+    target_s = max(t_s, 0.0)
+    try:
+        container = av.open(str(display))
+        try:
+            stream = container.streams.video[0]
+            container.seek(int(target_s / stream.time_base), stream=stream)
+            frame = None
+            for candidate in container.decode(stream):
+                if candidate.pts is not None and float(candidate.pts * stream.time_base) >= target_s:
+                    frame = candidate
+                    break
+                frame = candidate  # fall back to the last decodable frame
+            if frame is None:
+                return False
+            frame.to_image().convert("RGB").save(out, format="JPEG", quality=JPEG_Q)
+        finally:
+            container.close()
+    except av.FFmpegError:
+        return False
     return out.exists()
 
 
@@ -159,7 +181,7 @@ def ingest(
 
     for si, seg in enumerate(segments):
         display = cap_dir / seg["display"]
-        dur = _ffprobe_duration(display)
+        dur = _video_duration(display)
         clicks, moves = _load_cursor(cap_dir, seg["cursor"])
         downs = _meaningful_clicks(clicks)
 

@@ -9,7 +9,9 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "av>=18.0.0",
     "click>=8.0",
+    "pillow>=12.3.0",
     "playwright>=1.40",
     "pyobjc-framework-Quartz>=10.0; sys_platform == 'darwin'",
 ]

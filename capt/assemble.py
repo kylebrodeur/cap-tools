@@ -19,6 +19,29 @@ def _run(cmd: list[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
+def _check_ffmpeg_available() -> None:
+    """Fail fast with an actionable message if ffmpeg/ffprobe are missing
+    or broken (e.g. a dyld load error from a mismatched Homebrew library),
+    rather than a raw CalledProcessError/FileNotFoundError deep in the
+    first segment build."""
+    for exe in ("ffmpeg", "ffprobe"):
+        try:
+            r = subprocess.run([exe, "-version"], capture_output=True, text=True)
+        except FileNotFoundError:
+            raise RuntimeError(
+                f"capt assemble requires '{exe}' on PATH, but it isn't installed. "
+                f"Install ffmpeg (e.g. `brew install ffmpeg`)."
+            )
+        if r.returncode != 0:
+            detail = (r.stderr or r.stdout).strip().splitlines()[:1]
+            raise RuntimeError(
+                f"capt assemble found '{exe}' on PATH but it failed to run "
+                f"({detail[0] if detail else 'no output'}). This is usually a "
+                f"broken system install — try reinstalling it (e.g. "
+                f"`brew reinstall ffmpeg`)."
+            )
+
+
 def _duration(path: str) -> float:
     out = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
@@ -134,6 +157,8 @@ def assemble(
     Returns:
         Path to the assembled video.
     """
+    _check_ffmpeg_available()
+
     if width % 2 or height % 2:
         print(f"Warning: odd dimensions {width}x{height}; rounding up.")
         width += width % 2

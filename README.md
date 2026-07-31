@@ -82,8 +82,12 @@ convention as Cap's own `cap agents install`. See `bin/install-skill.js`.
   installed with its CLI on PATH (`curl -fsSL https://cap.so/install-cli.sh | sh`).
 - **WSL:** the above, plus Cap Desktop installed on a Windows host and WSL
   interop enabled — screen capture always targets the Windows desktop.
-- **Guide tool extras:** ffmpeg on PATH; a local OpenAI-compatible endpoint
-  (e.g. Ollama) if using `--ai` step-text generation.
+- **Guide tool extras:** none — frame extraction is vendored via
+  [PyAV](https://pyav.org/), no system ffmpeg/ffprobe required. A local
+  OpenAI-compatible endpoint (e.g. Ollama) if using `--ai` step-text
+  generation.
+- **`capt assemble` only:** ffmpeg on PATH (multi-clip stitching with
+  voiceover/captions still shells out to it).
 
 Run the test suite with `uv run pytest tests/`.
 
