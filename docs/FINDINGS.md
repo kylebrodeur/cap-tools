@@ -4,7 +4,7 @@ Technical findings from research across two projects. Generalised — not tied
 to either source project.
 
 **Sources**
-- `an internal reference project/the source project/` — recording scripts and docs
+- `an internal reference project/` — recording scripts and docs
 - `a companion project/docs/_reference/SESSION-LEARNINGS-2026-06-26.md` — CDP/WSL findings
 - `a companion project/docs/decisions/ADR-011-agent-ui-interaction.md` — Playwright/CDP architecture
 - `a companion project/docs/decisions/ADR-012-visual-annotation-review.md` — capture strategy
@@ -420,7 +420,7 @@ are independent and don't need to share a WebSocket connection.
 
 ## 18. Terminal recording is the same OS-screen use case
 
-Multiple projects (an internal project original, pi-tools demo patterns) record
+Multiple internal reference projects record
 terminal demos: Zellij multi-pane layouts, Pi agent sessions, ANSI
 dashboards. Cap records the OS screen, so terminals are just another
 target — no special handling needed.
@@ -437,7 +437,7 @@ Key generalised checklist items from `pi-tools/docs/demo-architecture-patterns.m
 
 ## 19. Recurring demo video need across projects — no systematic workflow
 
-**Sources:** an internal project, spanish-tutor, audio-transcription, brain-tree-os,
+**Sources:** an internal reference project, spanish-tutor, audio-transcription, brain-tree-os,
 mcp-network-analyzer — all needed 2-5 min demo videos for hackathon/launch.
 
 Each solved it ad-hoc (OBS, QuickTime, CapCut). The common structure:

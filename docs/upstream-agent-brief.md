@@ -115,9 +115,9 @@ Create an `upstream/` folder:
 - `upstream/PR-PLAN.md` — the eventual PR's scope (crate, subcommand, tests, docs),
   the port map from B, and a checklist. State clearly: **PR deferred — not now.**
 - `upstream/demo/` — generate `index.html` + `index.md` + `images/` from a
-  **non-sensitive** recording (use the Microfactory app demo or the short Desktop
-  `.cap`; **do not use client recordings** — Acme Corp/Acme Learning). This is the demo
-  to attach to the issue/discussion.
+  **non-sensitive** recording (use a personal demo app or the short Desktop
+  `.cap`; **do not use recordings that contain real client work**). This is
+  the demo to attach to the issue/discussion.
 
 ## 4. Constraints
 - **No GitHub PR/issue/discussion submission in this task** — drafts only.

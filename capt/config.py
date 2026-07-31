@@ -5,6 +5,7 @@ See docs/PROJECT-CONFIG-SCHEMA.md for the full schema.
 """
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -15,10 +16,20 @@ from capt.export import cap_bin
 
 # ── Presets ───────────────────────────────────────────────────────────────────
 
+def _demo_wallpaper_path() -> str:
+    """Path to one of Cap Desktop's bundled wallpaper assets (Windows only).
+
+    Cap installs its bundled backgrounds under the current Windows user's
+    own AppData, so this resolves per-user rather than being hardcoded to
+    whoever happened to build this preset.
+    """
+    username = os.environ.get("USERNAME") or os.environ.get("USER") or "<user>"
+    return f"\\\\?\\C:\\Users\\{username}\\AppData\\Local\\Cap\\assets\\backgrounds\\cities\\sf.jpg"
+
+
 PRESET_DEMO = {
     "background": {
-        "source": {"type": "wallpaper",
-                   "path": "\\\\?\\C:\\Users\\kyleb\\AppData\\Local\\Cap\\assets\\backgrounds\\cities\\sf.jpg"},
+        "source": {"type": "wallpaper", "path": _demo_wallpaper_path()},
         "blur": 0.0, "padding": 10.0, "rounding": 7.5, "roundingType": "squircle",
         "inset": 0, "crop": None, "shadow": 73.6,
         "advancedShadow": {"size": 14.4, "opacity": 68.1, "blur": 3.8},

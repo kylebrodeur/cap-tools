@@ -2,6 +2,9 @@
 # cap-cli agent verification - verifies cap function works
 # Usage: source skills/cap-cli/agent.sh
 
+# No universal default exists — the Windows username varies per machine.
+# Set CAP_CLI_PATH yourself, e.g.:
+#   export CAP_CLI_PATH="/mnt/c/Users/<your-windows-username>/AppData/Local/Cap/cap-cli.exe"
 CAP_CLI_PATH="${CAP_CLI_PATH:-/mnt/c/Users/<your-windows-username>/AppData/Local/Cap/cap-cli.exe}"
 
 if [[ -f "$CAP_CLI_PATH" ]]; then

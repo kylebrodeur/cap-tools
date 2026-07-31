@@ -7,7 +7,7 @@ with an honest read of where we are and prioritized next steps.
 
 > Source run: `Microfactory Node 3D Printer — 2026-06-14 02.50 AM` (18:22, 83
 > clicks, 2,385-word narration). Deliverable:
-> `spike/spike-output/an internal project-0250/walkthrough/{index.html,index.md,images/}`.
+> `spike/spike-output/example-recording/walkthrough/{index.html,index.md,images/}`.
 
 ---
 

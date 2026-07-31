@@ -102,7 +102,7 @@ The text/voice input at different scopes works like this:
 User types or says:                    Routes to:
 ──────────────────                     ──────────
 "always keep guides under 8 steps"  → config.json (global)
-"this guide is for Acme Corp admins"  → context.json (project)
+"this guide is for LMS admins"      → context.json (project)
 "today I want to fix the Properties → sessions/today.json (session)
   tab screenshots"
 "that frame shows the wrong tab"    → in-conversation, optionally

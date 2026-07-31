@@ -305,12 +305,12 @@ only need to observe browser state, not produce a polished artifact.
 
 ## UC-13: Hackathon / submission demo recording (multi-project pattern)
 
-**The pattern:** A recurring need across multiple projects (an internal project,
+**The pattern:** A recurring need across multiple internal reference projects (
 spanish-tutor, audio-transcription, brain-tree-os) is producing a 2-5 minute
 demo video for a hackathon or product launch. Each time this is solved
 ad-hoc with OBS/QuickTime or CapCut.
 
-**Sources:** `an internal project/docs/_archive/hackathon-sprint/05-VIDEO.md`,
+**Sources:** an internal reference project's hackathon-sprint notes,
 `_backlog/spanish-tutor-platform/.agent/plans/NEEDS_REVIEW-Post-Deploy-Demo-Plan.md`,
 `audio-transcription/docs/_archive/DEPLOYMENT_QUICKSTART.md`
 

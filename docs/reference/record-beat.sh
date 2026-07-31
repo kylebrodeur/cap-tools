@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SOURCE: an internal reference project/the source project/scripts/record-beat.sh
+# SOURCE: an internal reference project/record-beat.sh
 # ROLE: Reference implementation — per-beat recording orchestrator.
 # Start Cap, drive one named UI segment via Playwright CDP, stop Cap.
 # One .cap project per beat, clean in/out points.
@@ -27,12 +27,12 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-source ~/projects/cap-cli-skill/setup.sh 2>/dev/null || true
+source skills/cap-cli/setup.sh 2>/dev/null || true
 
 HOST_IP=$(ip route show | grep default | awk '{print $3}')
 export CDP_URL="http://${HOST_IP}:9222"
 CHROME="/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
-SPACE="https://node.your-target-app.example.com/?__theme=dark"
+SPACE="https://your-target-app.example.com"
 
 # Launch Chrome if not already alive
 if ! curl -s "${CDP_URL}/json/version" >/dev/null 2>&1; then

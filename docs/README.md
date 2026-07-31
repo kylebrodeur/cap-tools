@@ -32,7 +32,6 @@
 
 | File | What |
 |---|---|
-| [my-setup.md](./MY-SETUP.md) | Machine-specific reference — IPs, screen IDs, tool paths |
 | [reference/](./reference/) | Reference scripts + old architecture notes |
 
 ## Skills

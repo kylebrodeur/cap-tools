@@ -1,4 +1,4 @@
-# SOURCE: an internal reference project/the source project/scripts/verify_cdp.py
+# SOURCE: an internal reference project/verify_cdp.py
 # ROLE: Reference implementation — quick CDP connection verification.
 # Takes a screenshot via Python Playwright + CDP to prove the connection works.
 #
@@ -25,7 +25,7 @@ import time
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--cdp-url", default="http://172.25.144.1:9222", help="Chrome CDP URL")
-    ap.add_argument("--output", default="/tmp/an internal project_verify.png", help="screenshot path")
+    ap.add_argument("--output", default="/tmp/verify.png", help="screenshot path")
     args = ap.parse_args()
 
     try:

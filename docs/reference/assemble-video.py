@@ -1,4 +1,4 @@
-# SOURCE: an internal reference project/the source project/scripts/assemble-video.py
+# SOURCE: an internal reference project/assemble-video.py
 # ROLE: Reference implementation — ffmpeg assembly pipeline.
 # Takes a manifest JSON (segments with video/audio/caption), assembles
 # a final MP4 via ffmpeg scale/pad/drawtext + concat.
@@ -23,7 +23,7 @@ Usage:
     uv run python scripts/assemble-video.py recordings/manifest.json
 
 Output:
-    recordings/output/an internal project-node-demo.mp4
+    recordings/output/demo-output.mp4
 
 Manifest format (recordings/manifest.example.json is a starter):
     {
@@ -227,7 +227,7 @@ def main() -> None:
         }
         segments.append(resolved)
 
-    output = manifest.get("output", "output/an internal project-node-demo.mp4")
+    output = manifest.get("output", "output/demo-output.mp4")
     output_path = Path(output).resolve()
     output_path.parent.mkdir(parents=True, exist_ok=True)
 

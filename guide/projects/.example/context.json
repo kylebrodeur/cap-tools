@@ -10,9 +10,9 @@
   "audience_technical_level": "intermediate",
 
   "known_terminology": {
-    "badge delivery activity": "The Page-type activity titled 'Widget Mastery Certification' — NOT the Survey version",
+    "badge delivery activity": "The Page-type activity titled 'Sample Certification: Widget Mastery' — NOT the Survey version",
     "evergreen letter": "The letter named 'Widget Mastery - Certification - Certificate Link (Evergreen)' that fires on enrollment",
-    "ws-ai-accelerator-certification": "The activity code for the badge delivery page"
+    "ws-widget-mastery-certification": "The activity code for the badge delivery page"
   },
 
   "output_filename": "example-project-guide.html",

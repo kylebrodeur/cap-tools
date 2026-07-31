@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SOURCE: an internal reference project/the source project/scripts/export-beat.sh
+# SOURCE: an internal reference project/export-beat.sh
 # ROLE: Reference implementation — export a .cap project to MP4.
 # Wraps `cap export` with opinionated defaults (resolution, fps, quality).
 #
@@ -18,7 +18,7 @@ set -euo pipefail
 SOURCE="${1:?Usage: $0 <project.cap> <output.mp4>}"
 DEST="${2:?Usage: $0 <project.cap> <output.mp4>}"
 
-source ~/projects/cap-cli-skill/setup.sh 2>/dev/null || true
+source skills/cap-cli/setup.sh 2>/dev/null || true
 
 echo "Exporting $(basename "$SOURCE") -> $(basename "$DEST")..."
 cap export "$SOURCE" "$DEST" \

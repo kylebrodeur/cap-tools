@@ -124,7 +124,7 @@ This is the core architectural finding. All items here work together.
 
 ## 5. Beat Recording Patterns
 
-**Source:** `an internal reference project/the source project/scripts/`
+**Source:** `an internal reference project/scripts/`
 
 | # | Item | Tag |
 |---|---|---|
@@ -176,7 +176,7 @@ This is the core architectural finding. All items here work together.
 
 ## 8. Zoom Segment Generation from Event Timestamps
 
-**Source:** synthesis (an internal project zoom segments + agent-browser event tracking)
+**Source:** synthesis (an internal reference project's zoom segments + agent-browser event tracking)
 
 | # | Item | Tag |
 |---|---|---|
@@ -209,7 +209,7 @@ This is the core architectural finding. All items here work together.
 
 ## 10. Recurring Demo Structure (5+ Projects)
 
-**Sources:** an internal project, an internal reference project, spanish-tutor, audio-transcription, brain-tree-os, mcp-network-analyzer
+**Sources:** an internal reference project, spanish-tutor, audio-transcription, brain-tree-os, mcp-network-analyzer
 
 | # | Item | Tag |
 |---|---|---|

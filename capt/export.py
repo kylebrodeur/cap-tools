@@ -8,13 +8,21 @@ from typing import Optional
 
 
 def cap_bin() -> str:
-    """Find the cap CLI binary."""
+    """Find the cap CLI binary.
+
+    Resolution order: $CAP_CLI_PATH env var (documented in
+    skills/cap-cli/SKILL.md) -> `cap` on PATH -> the literal string "cap"
+    (so downstream subprocess calls still fail with a clear "not found"
+    rather than a confusing None).
+    """
+    import os
     import shutil
+
+    override = os.environ.get("CAP_CLI_PATH")
+    if override and Path(override).exists():
+        return override
     if shutil.which("cap"):
         return "cap"
-    fallback = "/mnt/c/Users/<your-windows-username>/AppData/Local/Cap/cap-cli.exe"
-    if Path(fallback).exists():
-        return fallback
     return "cap"
 
 

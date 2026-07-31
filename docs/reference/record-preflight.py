@@ -1,4 +1,4 @@
-# SOURCE: an internal reference project/the source project/scripts/record_preflight.py
+# SOURCE: an internal reference project/record_preflight.py
 # ROLE: Reference implementation — preflight gate checks before recording.
 # Verifies cap-cli, screen targets, Playwright, URL reachability, output dir.
 #
@@ -25,7 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-SPACE_URL = "https://node.your-target-app.example.com"
+SPACE_URL = "https://your-target-app.example.com"
 CAP_CLI_FALLBACK = "/mnt/c/Users/<your-windows-username>/AppData/Local/Cap/cap-cli.exe"
 EXPORT_DIR_WSL = "/mnt/d/workspace/recordings"
 SCREEN_ID = "65800"
@@ -101,7 +101,7 @@ def preflight(url: str = SPACE_URL, require_playwright: bool = True) -> bool:
         print(f"  ✓ G1 cap-cli found  ({_cap_bin()})")
         gates.append(True)
     else:
-        print("  ✗ G1 cap-cli NOT ready — source ~/projects/cap-cli-skill/setup.sh")
+        print("  ✗ G1 cap-cli NOT ready — source skills/cap-cli/setup.sh")
         gates.append(False)
 
     targets = _cap_json("targets", "--json")
