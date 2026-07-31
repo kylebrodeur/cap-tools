@@ -75,8 +75,6 @@ guide-tool/
 │   ├── transcribe.py      ← transcribe via the WSL server (?provider=) — ✅ wired
 │   ├── transcribe_local.py← local faster-whisper — offline stand-in / fallback
 │   ├── cap_ingest.py      ← .cap → frames + steps.json + click-guide   ★ validated
-│   ├── detect_tabs.py     ← vision tab detection; --video = tab-as-time-span ✅ v2
-│   ├── structure.py       ← format pass: transcript (+--tabs) → items.json ✅
 │   ├── build_walkthrough_doc.py ← items.json → index.html + index.md + named images (+--cursor regions)
 │   ├── record.py          ← standalone Windows recorder (gdigrab + pynput) — fallback
 │   ├── extract_frames.py  ← ffmpeg frame extraction (click + 0.5s)
@@ -122,6 +120,13 @@ This is naturally a **CLI + MCP "Cap add-on"**, not a GUI app — it's a pure
 See [DECISIONS.md](DECISIONS.md) for the full rationale and
 [`spike/SPIKE_IMPROVEMENT_BRIEF.md`](spike/SPIKE_IMPROVEMENT_BRIEF.md) for the
 phased plan.
+
+**Analytical layer moved:** `structure.py` (format pass) and `detect_tabs.py`
+(vision tab detection) — the decision/contradiction/open-question extraction
+and tab-aware grouping referenced throughout this doc — now live in the
+private `cap-guide-analysis` package, not in this repo. `capt guide --ai`
+imports them from there; the deterministic pipeline (ingest + render) needs
+nothing beyond cap-tools.
 
 ## Current status
 

@@ -2,11 +2,34 @@
 -> render. Extracted from capt/cli.py's `guide` command so both the CLI and
 a future chained command (Phase 3's `capt walkthrough`) can call one function
 instead of duplicating this sequencing.
+
+The deterministic path (ai=False) needs nothing beyond this package. The
+`ai=True` path hands off to `cap_guide_analysis`, a private companion
+package not distributed with cap-tools — see _import_structure() below.
 """
 
 import json
 from pathlib import Path
 from typing import Optional
+
+
+def _import_structure():
+    """Import `structure` from the private cap_guide_analysis package.
+
+    Kept as its own function (rather than an inline import in run_guide) so
+    the "not installed" error is a single, clear message instead of a raw
+    ModuleNotFoundError, and so tests can patch this one seam.
+    """
+    try:
+        from cap_guide_analysis import structure
+    except ImportError as e:
+        raise RuntimeError(
+            "capt guide --ai requires the private cap_guide_analysis package, "
+            "which is not part of the public cap-tools distribution. Install it "
+            "separately (uv pip install -e /path/to/cap-guide-analysis) or omit "
+            "--ai for the deterministic pipeline (ingest + render, no LLM)."
+        ) from e
+    return structure
 
 
 def run_guide(
@@ -34,7 +57,7 @@ def run_guide(
     result = ingest(str(cap_dir), out_dir, transcript_path=transcript_path)
 
     if ai:
-        from capt.guide.structure import structure
+        structure = _import_structure()
         from capt.guide.transcribe import transcribe
 
         resolved_transcript = transcript_path

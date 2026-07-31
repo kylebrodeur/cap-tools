@@ -43,7 +43,7 @@ def test_run_guide_ai_path_transcribes_and_structures_without_out_path_kwarg(tmp
 
     with patch("capt.guide.ingest.ingest", fake_ingest), \
          patch("capt.guide.transcribe.transcribe", fake_transcribe), \
-         patch("capt.guide.structure.structure", fake_structure), \
+         patch("capt.guide.pipeline._import_structure", return_value=fake_structure), \
          patch("capt.guide.render.render", fake_render):
         run_guide(str(cap_dir), str(out_dir), ai=True)
 
@@ -68,7 +68,7 @@ def test_run_guide_ai_path_uses_given_transcript_path_without_transcribing(tmp_p
 
     with patch("capt.guide.ingest.ingest", fake_ingest), \
          patch("capt.guide.transcribe.transcribe", fake_transcribe), \
-         patch("capt.guide.structure.structure", fake_structure), \
+         patch("capt.guide.pipeline._import_structure", return_value=fake_structure), \
          patch("capt.guide.render.render", fake_render):
         run_guide(str(cap_dir), str(out_dir), ai=True, transcript_path=str(transcript))
 
