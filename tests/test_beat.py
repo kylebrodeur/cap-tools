@@ -1,8 +1,15 @@
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from capt.record.beat import BeatResult, _run_cap_json, _start_recording, run_beat
+
+# These tests patch capt.record.macos_capture.GlobalCapture, which requires
+# Quartz (macOS-only) — patch()'s target resolution imports that module to
+# find the attribute, so it fails on other platforms even though run_beat()
+# itself only imports macos_capture lazily inside the global-capture branch.
+macos_only = pytest.mark.skipif(sys.platform != "darwin", reason="requires macOS Quartz-based GlobalCapture")
 
 
 def test_run_cap_json_parses_pretty_printed_multiline_output():
@@ -157,6 +164,7 @@ def test_run_beat_does_not_export_when_export_to_is_none(tmp_path):
     assert result.export_path is None
 
 
+@macos_only
 def test_run_beat_global_capture_starts_and_stops_capture(tmp_path):
     patches, mocks = _patch_all()
     fake_capture = MagicMock()
@@ -177,6 +185,7 @@ def test_run_beat_global_capture_starts_and_stops_capture(tmp_path):
     fake_capture.stop.assert_called_once()
 
 
+@macos_only
 def test_run_beat_stops_recording_even_if_capture_start_raises(tmp_path):
     # Regression test: capture/tracker setup must live inside the try/finally
     # so a failure in GlobalCapture.start() (e.g. missing Input Monitoring
@@ -273,6 +282,7 @@ def test_run_beat_creates_tracker_after_start_recording(tmp_path):
     assert call_order == ["start_recording", "create_tracker"]
 
 
+@macos_only
 def test_run_beat_starts_global_capture_after_start_recording(tmp_path):
     # Same ordering requirement as create_tracker above, but for the
     # global-capture path: GlobalCapture must be constructed/started only
@@ -309,6 +319,7 @@ def test_run_beat_starts_global_capture_after_start_recording(tmp_path):
     fake_capture.stop.assert_called_once()
 
 
+@macos_only
 def test_run_beat_steps_plus_global_capture_drives_steps_and_captures(tmp_path):
     # marker_source="steps+global-capture" is the mode the project's
     # playbook recommends for real use — it must drive steps AND run
@@ -335,6 +346,7 @@ def test_run_beat_steps_plus_global_capture_drives_steps_and_captures(tmp_path):
     fake_capture.stop.assert_called_once()
 
 
+@macos_only
 def test_run_beat_stops_recording_even_if_capture_stop_raises(tmp_path):
     patches, mocks = _patch_all()
     fake_capture = MagicMock()
