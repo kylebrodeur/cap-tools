@@ -1,5 +1,6 @@
 # cap-tools
 
+[![tests](https://github.com/kylebrodeur/cap-tools/actions/workflows/tests.yml/badge.svg)](https://github.com/kylebrodeur/cap-tools/actions/workflows/tests.yml)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 ![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows%20(WSL)-lightgrey.svg)
@@ -31,6 +32,10 @@ capt record https://example.com --out recordings --screen <id> \
   --marker-source steps+global-capture --export-to demo.mp4 --json
 capt guide path/to/recording.cap --format both
 ```
+
+`--screen <id>` records the full display; pass `--window <id>` instead (both
+from `cap targets --json`) to capture just one window — the two are
+mutually exclusive.
 
 `capt record` runs in-process on macOS/Linux — no browser-automation hop
 required. On WSL it bridges to a Windows-hosted Cap Desktop install, since
@@ -90,6 +95,10 @@ convention as Cap's own `cap agents install`. See `bin/install-skill.js`.
   voiceover/captions still shells out to it).
 
 Run the test suite with `uv run pytest tests/`.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
