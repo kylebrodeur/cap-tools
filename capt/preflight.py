@@ -185,6 +185,26 @@ def preflight(
         print("  - G7 Tailscale skipped (HTTP target — not needed)")
         gates.append(True)
 
+    # G8: Cap doctor capture-readiness (screen/camera/mic permissions +
+    # live ScreenCaptureKit health). A stale capture session in Cap Desktop
+    # passes every other gate but fails mid-take with a display/decode
+    # error — doctor's captureReady field catches it before you waste a
+    # take (verified 2026-07-31).
+    doctor = _cap_json("doctor")
+    permissions = (doctor or {}).get("permissions", {})
+    screen_ok = permissions.get("screenRecording") == "granted"
+    capture_ready = (doctor or {}).get("captureReady", screen_ok)
+    if screen_ok and capture_ready:
+        print("  ✓ G8 cap doctor capture-ready  (screenRecording granted)")
+        gates.append(True)
+    elif doctor is None:
+        print("  ⚠ G8 cap doctor unavailable — continuing without it")
+        gates.append(True)
+    else:
+        detail = "screenRecording not granted" if not screen_ok else "capture not ready"
+        print(f"  ✗ G8 cap doctor: {detail} — quit/relaunch Cap Desktop and retry")
+        gates.append(False)
+
     passed = all(gates)
     print(f"\n  Preflight: {'✓ ALL GATES PASS' if passed else '✗ SOME GATES FAILED'}")
     return passed
