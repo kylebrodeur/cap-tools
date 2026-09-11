@@ -385,7 +385,9 @@ def test_run_beat_creates_tracker_after_start_recording(tmp_path):
 
     def fake_create_tracker():
         call_order.append("create_tracker")
-        return MagicMock()
+        fake = MagicMock()
+        fake.events.return_value = []
+        return fake
 
     patches, mocks = _patch_all(
         _start_recording=MagicMock(side_effect=fake_start_recording),

@@ -116,3 +116,16 @@ def create_tracker():
             return list(self._events)
 
     return Tracker()
+
+
+def write_events(events: list[dict], path: str) -> None:
+    """Write the recording's event list to a JSON sidecar file.
+
+    The sidecar lives next to the .cap (e.g. recordings/demo.cap →
+    recordings/demo.events.json) so guide generation or any downstream
+    tool can reuse the exact click timeline without re-deriving it from
+    the video. Overwrites an existing sidecar — the events list from one
+    run is authoritative for that run.
+    """
+    with open(path, "w") as f:
+        json.dump(events, f, indent=2)

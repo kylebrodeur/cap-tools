@@ -15,7 +15,7 @@ from typing import Optional, Union
 
 from capt.config import read_config, write_config
 from capt.export import cap_bin, export as cap_export
-from capt.zoom import build_zoom_segments, create_tracker, merge_zoom_segments
+from capt.zoom import build_zoom_segments, create_tracker, merge_zoom_segments, write_events
 
 
 @dataclass
@@ -153,6 +153,8 @@ def run_beat(
     system_audio: bool = False,
     camera: Optional[str] = None,
     until_stopped: bool = False,
+    storage_state: Optional[str] = None,
+    user_data_dir: Optional[str] = None,
 ) -> BeatResult:
     """Run one beat: record, drive/capture markers, stop, build+merge zoom,
     optionally export.
@@ -206,7 +208,8 @@ def run_beat(
             capture.start()
 
         if "steps" in sources and (url or steps):
-            drive_steps(url, steps, tracker)
+            drive_steps(url, steps, tracker,
+                        storage_state=storage_state, user_data_dir=user_data_dir)
 
         if until_stopped:
             _wait_for_external_stop(recording_id)
@@ -220,6 +223,7 @@ def run_beat(
     _validate_project(cap_path)
 
     events = tracker.events()
+    write_events(events, str(Path(cap_path).with_suffix(".events.json")))
     zoom_segments = build_zoom_segments(events, amount=zoom_amount)
     try:
         current = read_config(cap_path)
