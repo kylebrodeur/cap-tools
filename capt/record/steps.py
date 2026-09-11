@@ -2,6 +2,9 @@
 that executes them against a live page, marking a shared event tracker as it
 goes. See docs/superpowers/specs/2026-07-30-macos-record-support-design.md.
 """
+from typing import Optional
+
+from playwright.sync_api import sync_playwright
 
 VALID_ACTIONS = {"goto", "click", "fill", "wait", "mark"}
 
@@ -11,7 +14,7 @@ def validate_steps(steps: list) -> list:
 
     Schema:
         goto:  {"action": "goto", "url": str}
-        click: {"action": "click", "selector": str}
+        click: {"action": "click", "selector": str, "count": int (optional, default 1)}
         fill:  {"action": "fill", "selector": str, "text": str}
         wait:  {"action": "wait", "selector": str} |
                {"action": "wait", "ms": int} |
@@ -47,7 +50,7 @@ def _run_step(page, step: dict, tracker) -> None:
         page.goto(step["url"])
         tracker.mark(step.get("label", "goto"))
     elif action == "click":
-        page.click(step["selector"])
+        page.click(step["selector"], click_count=step.get("count", 1))
         tracker.mark(step.get("label", f"click:{step['selector']}"))
     elif action == "fill":
         page.fill(step["selector"], step["text"])
@@ -77,9 +80,32 @@ def _needs_visible_browser(url, steps: list) -> bool:
     return any(step.get("action") in _VISIBLE_ACTIONS for step in steps)
 
 
-def drive_steps(url, steps: list, tracker) -> None:
+def _browser_context_args(storage_state, user_data_dir) -> dict:
+    """Which auth mechanism the browser launch should use, if any.
+
+    user_data_dir wins when both are given — a persistent profile covers
+    everything a bare storageState JSON does, plus IndexedDB/service
+    workers/PWA state.
+    """
+    if user_data_dir:
+        return {"user_data_dir": user_data_dir}
+    if storage_state:
+        return {"storage_state": storage_state}
+    return {}
+
+
+def drive_steps(url, steps: list, tracker,
+                storage_state: Optional[str] = None,
+                user_data_dir: Optional[str] = None) -> None:
     """Launch Playwright Chromium, optionally navigate to url, then drive
     each step in order, marking `tracker` as described in `_run_step`.
+
+    storage_state: path to a Playwright storageState JSON — cookies +
+    localStorage from a previous authenticated session, applied to a
+    fresh context. user_data_dir: path to a full Chrome/Chromium profile
+    directory — launches a persistent context instead, so logins beyond
+    cookies (service workers, IndexedDB, PWA installs) carry over;
+    wins when both are given.
 
     Runs headless when nothing here needs a visible page (see
     _needs_visible_browser) — otherwise headed, since the point is usually
@@ -89,15 +115,26 @@ def drive_steps(url, steps: list, tracker) -> None:
     """
     validate_steps(steps)
     headless = not _needs_visible_browser(url, steps)
+    auth = _browser_context_args(storage_state, user_data_dir)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=headless)
+        if auth.get("user_data_dir"):
+            context = p.chromium.launch_persistent_context(
+                auth["user_data_dir"], headless=headless)
+            browser, page = None, context.pages[0] if context.pages else context.new_page()
+        else:
+            browser = p.chromium.launch(headless=headless)
+            context = browser.new_context(**{
+                k: v for k, v in auth.items() if k != "user_data_dir"})
+            page = context.new_page()
         try:
-            page = browser.new_page()
             if url:
                 page.goto(url)
                 tracker.mark("page-load")
             for step in steps:
                 _run_step(page, step, tracker)
         finally:
-            browser.close()
+            if browser is not None:
+                browser.close()
+            else:
+                context.close()

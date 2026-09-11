@@ -68,9 +68,16 @@ def test_run_step_click_calls_page_and_marks_tracker():
     page = MagicMock()
     tracker = MagicMock()
     _run_step(page, {"action": "click", "selector": "#save"}, tracker)
-    page.click.assert_called_once_with("#save")
+    page.click.assert_called_once_with("#save", click_count=1)
     tracker.mark.assert_called_once_with("click:#save")
 
+
+def test_run_step_click_forwards_count():
+    page = MagicMock()
+    tracker = MagicMock()
+    _run_step(page, {"action": "click", "selector": "#save", "count": 2}, tracker)
+    page.click.assert_called_once_with("#save", click_count=2)
+    tracker.mark.assert_called_once_with("click:#save")
 
 def test_run_step_fill_calls_page_and_marks_tracker():
     page = MagicMock()
@@ -121,8 +128,10 @@ def test_run_step_wait_text_calls_wait_for_selector_with_text_prefix():
 def test_drive_steps_launches_browser_navigates_and_closes():
     tracker = MagicMock()
     fake_page = MagicMock()
+    fake_context = MagicMock()
+    fake_context.new_page.return_value = fake_page
     fake_browser = MagicMock()
-    fake_browser.new_page.return_value = fake_page
+    fake_browser.new_context.return_value = fake_context
     fake_chromium = MagicMock()
     fake_chromium.launch.return_value = fake_browser
     fake_pw = MagicMock()
@@ -135,7 +144,7 @@ def test_drive_steps_launches_browser_navigates_and_closes():
         drive_steps("https://example.com", [{"action": "click", "selector": "#go"}], tracker)
 
     fake_page.goto.assert_called_once_with("https://example.com")
-    fake_page.click.assert_called_once_with("#go")
+    fake_page.click.assert_called_once_with("#go", click_count=1)
     fake_browser.close.assert_called_once()
 
 
@@ -143,8 +152,10 @@ def test_drive_steps_closes_browser_even_if_a_step_raises():
     tracker = MagicMock()
     fake_page = MagicMock()
     fake_page.click.side_effect = RuntimeError("boom")
+    fake_context = MagicMock()
+    fake_context.new_page.return_value = fake_page
     fake_browser = MagicMock()
-    fake_browser.new_page.return_value = fake_page
+    fake_browser.new_context.return_value = fake_context
     fake_chromium = MagicMock()
     fake_chromium.launch.return_value = fake_browser
     fake_pw = MagicMock()
@@ -160,11 +171,35 @@ def test_drive_steps_closes_browser_even_if_a_step_raises():
     fake_browser.close.assert_called_once()
 
 
+def test_drive_steps_closes_browser_even_if_a_step_raises():
+    tracker = MagicMock()
+    fake_page = MagicMock()
+    fake_page.click.side_effect = RuntimeError("boom")
+    fake_context = MagicMock()
+    fake_context.new_page.return_value = fake_page
+    fake_browser = MagicMock()
+    fake_browser.new_context.return_value = fake_context
+    fake_chromium = MagicMock()
+    fake_chromium.launch.return_value = fake_browser
+    fake_pw = MagicMock()
+    fake_pw.chromium = fake_chromium
+    fake_pw_cm = MagicMock()
+    fake_pw_cm.__enter__.return_value = fake_pw
+    fake_pw_cm.__exit__.return_value = False
+
+    with patch("capt.record.steps.sync_playwright", return_value=fake_pw_cm):
+        with pytest.raises(RuntimeError, match="boom"):
+            drive_steps(None, [{"action": "click", "selector": "#go"}], tracker)
+
+
+
 def test_drive_steps_skips_navigation_when_no_url():
     tracker = MagicMock()
     fake_page = MagicMock()
+    fake_context = MagicMock()
+    fake_context.new_page.return_value = fake_page
     fake_browser = MagicMock()
-    fake_browser.new_page.return_value = fake_page
+    fake_browser.new_context.return_value = fake_context
     fake_chromium = MagicMock()
     fake_chromium.launch.return_value = fake_browser
     fake_pw = MagicMock()
@@ -206,8 +241,10 @@ def test_needs_visible_browser_false_for_no_url_and_no_steps():
 def test_drive_steps_launches_headless_when_nothing_needs_visibility():
     tracker = MagicMock()
     fake_page = MagicMock()
+    fake_context = MagicMock()
+    fake_context.new_page.return_value = fake_page
     fake_browser = MagicMock()
-    fake_browser.new_page.return_value = fake_page
+    fake_browser.new_context.return_value = fake_context
     fake_chromium = MagicMock()
     fake_chromium.launch.return_value = fake_browser
     fake_pw = MagicMock()
@@ -225,8 +262,10 @@ def test_drive_steps_launches_headless_when_nothing_needs_visibility():
 def test_drive_steps_launches_headed_when_url_given():
     tracker = MagicMock()
     fake_page = MagicMock()
+    fake_context = MagicMock()
+    fake_context.new_page.return_value = fake_page
     fake_browser = MagicMock()
-    fake_browser.new_page.return_value = fake_page
+    fake_browser.new_context.return_value = fake_context
     fake_chromium = MagicMock()
     fake_chromium.launch.return_value = fake_browser
     fake_pw = MagicMock()
@@ -239,3 +278,5 @@ def test_drive_steps_launches_headed_when_url_given():
         drive_steps("https://example.com", [], tracker)
 
     fake_chromium.launch.assert_called_once_with(headless=False)
+
+
