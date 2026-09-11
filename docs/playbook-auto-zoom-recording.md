@@ -87,15 +87,16 @@ than just using it.
    Confirm every gate passes. `capt preflight` checks `cap` is resolvable,
    a screen target exists, Playwright's installed, the output dir is
    writable, and — on macOS, when `--marker-source` includes
-   `global-capture` — that Input Monitoring is actually granted (it does
-   **not** shell out to `cap doctor`; that's a separate, Cap-native
-   diagnostic worth running yourself if a live recording ever behaves
-   strangely — see the note at the top of this doc).
+   `global-capture` — that Input Monitoring is actually granted. Gate G8
+   now shells out to `cap doctor` too: a missing screenRecording
+   permission or `captureReady: false` (stale ScreenCaptureKit state)
+   fails fast here instead of wasting a take. Doctor unavailable? It
+   degrades to a warning.
 
    Take a screen ID from `cap targets --json`'s `screens` list, or a
    window ID from its `windows` list — `capt record` needs one explicitly
    passed via `--screen` or `--window` (there's no default-primary-screen
-   fallback).
+   fallback). Skip the ID lookup entirely with `--pick` (below).
 
 2. **Start the recording**
 
@@ -198,12 +199,34 @@ Open the exported MP4 and check:
 - Anything already configured in Studio (background, camera, cursor
   style) survived — `merge_zoom_segments` does a read-merge-write, never a
   blind overwrite.
+- `recordings/<name>.events.json` lists every captured event with its
+  `elapsed_s` — your manual-marks are in there, ready to rename and
+  re-apply (see [Command reference](#command-reference)).
 
 Then turn the recording into an illustrated guide from the same `.cap`:
 
 ```bash
 capt guide recordings/my-walkthrough.cap --format both
 ```
+
+## Command reference
+
+| Command | What it does |
+|---|---|
+| `capt preflight [--marker-source …] [--url <u>]` | Readiness gates (G1–G8), including `cap doctor` capture-readiness |
+| `capt demo <name> [--pick] [--window <id>]` | Live narrated take: preflight + auto screen/mic + real-click zoom + auto export; stop from Cap's menu-bar icon |
+| `capt record --pick` / `capt record --window <id> --marker-source global-capture --until-stopped` | The same take, with manual control |
+| `capt record --steps steps.json [--screen <id>]` | Scripted, repeatable beat |
+| `capt record … --storage-state s.json` / `--user-data-dir <profile>` | Scripted beat inside a logged-in app |
+| `capt guide recordings/<name>.cap --format both` | Illustrated HTML + Markdown guide from a recording |
+| `capt guide recordings/<name>.cap --ai` | + decision/contradiction/open-question analysis (cap-guide-analysis) |
+| `capt zoom apply recordings/<name>.cap recordings/<name>.events.json` | Rebuild zoom from the events sidecar (e.g. after renaming manual-marks) |
+| `capt export recordings/<name>.cap out.mp4` | Export only (after config changes) |
+| `capt config recordings/<name>.cap --get` | Inspect project-config.json |
+
+Every recording leaves `<name>.events.json` next to the `.cap` — the exact
+click/mark timeline. Edit its labels (e.g. rename `manual-mark` to
+`opened-contacts-sheet`), re-apply zoom, re-export.
 
 ## If it all checks out
 
@@ -219,10 +242,9 @@ ready to become a real PR against `CapSoftware/Cap`, once submitted.
   feed it back into `capt/record/beat.py`'s defaults or a wording fix in
   the upstream doc draft.
 - **A live recording fails with a display/decode error** (e.g. "no
-  decodable frames", a bare `"display"` error) despite `capt preflight`
-  passing: run `cap doctor --json` and check `captureReady` /
-  `screenCaptureKit`. A long-running Cap Desktop session can end up with a
-  stale ScreenCaptureKit state that `capt preflight` doesn't catch (it only
-  checks the Input Monitoring permission, not live capture health) — quit
-  and relaunch Cap Desktop, then re-check `cap doctor` before assuming it's
-  a `capt` bug.
+  decodable frames", a bare `"display"` error): preflight's G8 gate now
+  checks `cap doctor`'s capture-readiness before you record, but if you
+  skipped preflight or it raced, run `cap doctor --json` and check
+  `captureReady` / `screenCaptureKit`. A long-running Cap Desktop session
+  can end up with stale ScreenCaptureKit state — quit and relaunch Cap
+  Desktop, then re-check `cap doctor` before assuming it's a `capt` bug.
