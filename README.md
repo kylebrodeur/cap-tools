@@ -35,7 +35,20 @@ capt guide path/to/recording.cap --format both
 
 `--screen <id>` records the full display; pass `--window <id>` instead (both
 from `cap targets --json`) to capture just one window — the two are
-mutually exclusive.
+mutually exclusive. `--pick` opens an interactive screen/window picker when
+you're in a terminal (agents should always pass `--screen`/`--window`
+explicitly). Every recording writes an events sidecar next to the `.cap`
+(`<name>.events.json`) — the exact click/mark timeline, reusable by
+`capt zoom apply` or any downstream tool.
+
+For scripted recording against a logged-in app, authenticate the driven
+browser with `--storage-state <playwright-state.json>` (cookies +
+localStorage) or `--user-data-dir <profile-dir>` (full persistent profile —
+IndexedDB/service workers/PWA state; wins when both are given).
+
+Each `capt preflight` includes a `cap doctor` capture-readiness gate (G8)
+so a stale ScreenCaptureKit session in Cap Desktop fails fast instead of
+wasting a take.
 
 For a live, narrated walkthrough (macOS only — no fixed length, no
 `--steps`), `capt demo` is a shortcut that auto-detects the screen and

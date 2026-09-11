@@ -32,8 +32,14 @@ duration — `capt demo` wraps everything below into one command:
 
 ```bash
 capt demo my-walkthrough                       # screen + mic auto-detected
+capt demo my-walkthrough --pick                # interactive window/screen picker
 capt demo my-walkthrough --window <id>         # one window instead of the full screen
 ```
+
+With `--pick` (or `capt record --pick`), `capt` lists every live window
+(PWA apps show under their own name — e.g. `ReelBinder`) plus the screens,
+and you type the number. Filter by *owner*, not title: a Chrome tab titled
+"ReelBinder…" is not the PWA; the entry owned by `ReelBinder` is.
 
 It runs preflight, picks the primary screen (or first microphone) from
 `cap targets --json` unless you override them, then records with real
@@ -48,10 +54,26 @@ early. When it's done:
   Next: capt guide recordings/my-walkthrough.cap --format both
 ```
 
+### Today's target: ReelBinder (Chrome PWA)
+
+The installed PWA (`~/Applications/Chrome Apps.localized/ReelBinder.app`)
+shows up as its own window target, so you can record just the app instead
+of the whole desktop:
+
+```bash
+cap record windows --json          # find the ReelBinder window id (owner "ReelBinder")
+capt demo reelbinder-demo --window <id>
+```
+
+Click through the app as normal; every click becomes a zoom marker,
+Cmd+Shift+M adds a labeled mark, and stopping from Cap's menu-bar icon
+finishes the take (zoomed MP4 + .cap + `recordings/reelbinder-demo.events.json`).
+
 Skip to [Watch the output](#watch-the-output) below. The rest of this doc
 is the manual, step-by-step version — useful if you want more control than
 `capt demo` gives you, or if you're validating the technique itself rather
 than just using it.
+
 
 ## Manual steps
 
@@ -126,6 +148,7 @@ see `capt/record/steps.py` for the full schema. Example, verified live:
   {"action": "goto", "url": "https://example.com"},
   {"action": "wait", "ms": 1000},
   {"action": "click", "selector": "a"},
+  {"action": "click", "selector": ".load-more", "count": 2},
   {"action": "mark", "label": "clicked-more-info-link"}
 ]
 ```
@@ -144,6 +167,24 @@ of popping up an empty, unused browser window.
 
 `--marker-source steps+global-capture` combines both: drive a scripted
 setup, then keep capturing real clicks on top of it.
+
+### Authenticated scripted recording (logged-in apps)
+
+Playwright's browser starts logged-out. To script a take inside an app
+that needs login (e.g. the ReelBinder PWA), hand the driver your session:
+
+```bash
+# option A: full Chrome profile — covers IndexedDB, service workers, PWAs
+capt record https://studio.reelbinder.app --out recordings \
+  --user-data-dir "$HOME/Library/Application Support/Google/Chrome/Default" \
+  --screen <screen-id> --steps steps.json --export-to demo.mp4
+
+# option B: bare storage state (cookies + localStorage only)
+capt record ... --storage-state state.json
+```
+
+`--user-data-dir` wins when both are passed. Launch with the profile only
+while Chrome is closed — Chromium locks the profile directory.
 
 ## Watch the output
 
