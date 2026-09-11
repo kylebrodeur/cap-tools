@@ -27,9 +27,36 @@ def _is_wsl() -> bool:
         return False
 
 
+def _pick_target():
+    """Interactive screen/window picker for --pick (TTY sessions only).
+
+    Returns ("screen", id) or ("window", id), or None if no targets exist.
+    Windows are offered first — they're the common demo target — with a
+    trailing "whole screen" option. Non-TTY callers must pass
+    --screen/--window explicitly; this helper is never reached from agents.
+    """
+    from capt.targets import list_targets
+
+    targets = list_targets()
+    if not targets:
+        return None
+
+    windows = targets.get("windows", [])
+    screens = targets.get("screens", [])
+    options = [(("window", w["id"]), f"window  {w['id']:>6}  {w.get('ownerName', '?')} — {w.get('name', '')[:60]}")
+               for w in windows]
+    options += [(("screen", s["id"]), f"screen  {s['id']:>6}  {s.get('name', '?')}")
+                for s in screens]
+
+    click.echo("Capture targets:")
+    for i, (_, label) in enumerate(options, 1):
+        click.echo(f"  {i}. {label}")
+    choice = click.prompt("Pick a target", type=click.IntRange(1, len(options)))
+    return options[choice - 1][0]
+
+
 @click.group()
 def main():
-    """cap-tools: automate recordings and generate guides from Cap .cap files."""
     pass
 
 
@@ -53,9 +80,17 @@ def main():
               help="Keep recording until you stop it from Cap's own UI (menu bar icon), instead of stopping "
                    "as soon as any --steps finish (or immediately, if there are none) — for a live, "
                    "unscripted-length walkthrough")
+@click.option("--storage-state", default=None,
+              help="Path to a Playwright storageState JSON for authenticated scripted recording")
+@click.option("--user-data-dir", default=None,
+              help="Path to a Chrome/Chromium profile directory for a persistent logged-in context "
+                   "(wins over --storage-state)")
+@click.option("--pick", is_flag=True,
+              help="Interactively pick a screen or window (TTY only; agents pass --screen/--window instead)")
 @click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
 def record(url, name, out, screen, window, steps, marker_source, export_to,
-           mic, system_audio, camera, until_stopped, json_out):
+           mic, system_audio, camera, until_stopped, storage_state, user_data_dir,
+           pick, json_out):
     """Automate a browser-driven screen recording with automatic zoom.
 
     On macOS/Linux, runs in-process (no PowerShell hop). On WSL, invokes the
@@ -63,6 +98,18 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
     """
     if screen and window:
         raise click.UsageError("--screen and --window are mutually exclusive; pass one.")
+
+    if pick:
+        if screen or window:
+            raise click.UsageError("--pick cannot be combined with --screen or --window.")
+        target = _pick_target()
+        if target is None:
+            raise click.UsageError("No capture targets found (`cap targets --json` failed).")
+        kind, target_id = target
+        if kind == "screen":
+            screen = target_id
+        else:
+            window = target_id
 
     step_list = []
     if steps:
@@ -74,13 +121,11 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
         return
 
     from capt.record.beat import run_beat
-
-    if json_out:
-        click.echo(json.dumps({"type": "Progress", "stage": "recording"}))
-
     result = run_beat(url, step_list, out, name=name, screen_id=screen, window_id=window,
                       marker_source=marker_source, export_to=export_to,
-                      mic=mic, system_audio=system_audio, camera=camera, until_stopped=until_stopped)
+                      mic=mic, system_audio=system_audio, camera=camera, until_stopped=until_stopped,
+                      storage_state=storage_state, user_data_dir=user_data_dir)
+
 
     if json_out:
         click.echo(json.dumps({
@@ -181,12 +226,14 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
 @click.option("--out", default="recordings", help="Output directory")
 @click.option("--screen", default=None, help="Cap screen ID (auto-detected if omitted)")
 @click.option("--window", default=None, help="Cap window ID (captures just this window)")
+@click.option("--pick", is_flag=True,
+              help="Interactively pick which window/screen to record (TTY only)")
 @click.option("--mic", default=None, help="Microphone device name (auto-detected if omitted)")
 @click.option("--no-mic", is_flag=True, help="Skip narration audio entirely")
 @click.option("--system-audio", is_flag=True, help="Also capture system audio")
 @click.option("--skip-preflight", is_flag=True, help="Skip the readiness check")
 @click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
-def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight, json_out):
+def demo(name, out, screen, window, pick, mic, no_mic, system_audio, skip_preflight, json_out):
     """Record a live, narrated demo with sensible defaults filled in.
 
     Shortcut for `capt record --marker-source global-capture --until-stopped`
@@ -217,7 +264,18 @@ def demo(name, out, screen, window, mic, no_mic, system_audio, skip_preflight, j
     from capt.targets import default_mic_name, default_screen_id, list_targets
 
     targets = list_targets()
-    if not screen and not window:
+    if pick:
+        if screen or window:
+            raise click.UsageError("--pick cannot be combined with --screen or --window.")
+        target = _pick_target()
+        if target is None:
+            raise click.UsageError("No capture targets found (`cap targets --json` failed).")
+        kind, target_id = target
+        if kind == "screen":
+            screen = target_id
+        else:
+            window = target_id
+    elif not screen and not window:
         if not targets:
             raise click.UsageError(
                 "Could not auto-detect a screen (`cap targets --json` failed) — pass --screen or --window."
