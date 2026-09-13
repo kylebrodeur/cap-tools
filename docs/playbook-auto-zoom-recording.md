@@ -44,10 +44,10 @@ and you type the number. Filter by *owner*, not title: a Chrome tab titled
 
 It runs preflight, picks the primary screen (or first microphone) from
 `cap targets --json` unless you override them, then records with real
-click-tracking (`--marker-source global-capture`) until **you stop it from
-Cap's own UI** (menu bar icon / Studio's Stop button) — not a keypress, so
-nothing you type or click during the demo itself can end the recording
-early. When it's done:
+click-tracking (`--marker-source global-capture`) until you press
+**Ctrl-C in this terminal**. `capt` catches it as a graceful stop request,
+stops the exact detached Cap CLI session, then finishes the sidecar, zoom,
+validation, and export. When it's done:
 
 ```
 ✓ Recorded: recordings/my-walkthrough.cap
@@ -66,9 +66,10 @@ cap record windows --json          # find the ReelBinder window id (owner "ReelB
 capt demo reelbinder-demo --window <id>
 ```
 
-Click through the app as normal; every click becomes a zoom marker,
-Cmd+Shift+M adds a labeled mark, and stopping from Cap's menu-bar icon
-finishes the take (zoomed MP4 + .cap + `recordings/reelbinder-demo.events.json`).
+Click through the app as normal; every click becomes a zoom marker and
+Cmd+Shift+M adds a labeled mark. Press **Ctrl-C in this terminal** to stop
+safely. The completed take contains a zoomed MP4, `.cap`, and
+`recordings/reelbinder-demo.events.json`.
 
 Skip to [Watch the output](#watch-the-output) below. The rest of this doc
 is the manual, step-by-step version — useful if you want more control than
@@ -131,12 +132,11 @@ than just using it.
 
    Click, type, and navigate as you normally would. Press Cmd+Shift+M at
    any moment for an explicit labeled mark (optional — every real click is
-   already captured automatically). When you're done, **stop the
-   recording from Cap's own UI** — its menu bar icon, or Studio's Stop
-   button. The command finishes on its own once it notices (it polls
-   `cap record status`, typically within about a second), builds zoom
-   segments from every click it saw, merges them into the project config,
-   and exports.
+   already captured automatically). When you're done, press **Ctrl-C in
+   the same terminal that is running `capt`**. `capt` catches the interrupt
+   rather than exiting, stops the exact detached session via
+   `cap record stop --id <recordingId>`, then builds zoom segments, merges
+   them into the project config, writes the sidecar, validates, and exports.
 
 ## Scripted recordings
 
@@ -215,8 +215,8 @@ capt guide recordings/my-walkthrough.cap --format both
 | Command | What it does |
 |---|---|
 | `capt preflight [--marker-source …] [--url <u>]` | Readiness gates (G1–G8), including `cap doctor` capture-readiness |
-| `capt demo <name> [--pick] [--window <id>]` | Live narrated take: preflight + auto screen/mic + real-click zoom + auto export; stop from Cap's menu-bar icon |
-| `capt record --pick` / `capt record --window <id> --marker-source global-capture --until-stopped` | The same take, with manual control |
+| `capt demo <name> [--pick] [--window <id>]` | Live narrated take: preflight + auto screen/mic + real-click zoom + auto export; press Ctrl-C in this terminal to stop and finalize safely |
+| `capt record --pick` / `capt record --window <id> --marker-source global-capture --until-stopped` | The same take, with manual control; Ctrl-C is graceful while waiting |
 | `capt record --steps steps.json [--screen <id>]` | Scripted, repeatable beat |
 | `capt record … --storage-state s.json` / `--user-data-dir <profile>` | Scripted beat inside a logged-in app |
 | `capt guide recordings/<name>.cap --format both` | Illustrated HTML + Markdown guide from a recording |

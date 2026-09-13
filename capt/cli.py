@@ -82,9 +82,9 @@ def main():
 @click.option("--system-audio", is_flag=True, help="Capture system audio")
 @click.option("--camera", default=None, help="Camera device id to record (see `cap targets cameras`)")
 @click.option("--until-stopped", is_flag=True,
-              help="Keep recording until you stop it from Cap's own UI (menu bar icon), instead of stopping "
-                   "as soon as any --steps finish (or immediately, if there are none) — for a live, "
-                   "unscripted-length walkthrough")
+              help="Keep recording after any --steps finish (or with no steps) until you press Ctrl-C; "
+                   "capt catches it, stops the detached Cap recording, and completes sidecar/zoom/export "
+                   "instead of aborting")
 @click.option("--storage-state", default=None,
               help="Path to a Playwright storageState JSON for authenticated scripted recording")
 @click.option("--user-data-dir", default=None,
@@ -243,9 +243,9 @@ def demo(name, out, screen, window, pick, mic, no_mic, system_audio, skip_prefli
 
     Shortcut for `capt record --marker-source global-capture --until-stopped`
     with the screen, mic, and readiness check done for you — real clicks
-    become zoom markers automatically, and it keeps recording until you stop
-    it from Cap's own UI (menu bar icon). For scripted/repeatable beats, use
-    `capt record` directly.
+    become zoom markers automatically. Press Ctrl-C in this terminal when
+    done; capt handles it as a graceful stop and completes post-processing.
+    For scripted/repeatable beats, use `capt record` directly.
     """
     if screen and window:
         raise click.UsageError("--screen and --window are mutually exclusive; pass one.")
@@ -302,7 +302,10 @@ def demo(name, out, screen, window, pick, mic, no_mic, system_audio, skip_prefli
     if json_out:
         click.echo(json.dumps({"type": "Progress", "stage": "recording"}))
     else:
-        click.echo(f"Recording '{name}' — narrate your walkthrough now.")
+        click.echo(
+            f"Recording '{name}' — narrate your walkthrough now. "
+            "Press Ctrl-C here when done; capt will stop and finalize safely."
+        )
     result = run_beat(
         None, [], out, name=name, screen_id=screen, window_id=window,
         marker_source="global-capture", export_to=export_path,

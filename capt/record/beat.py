@@ -100,12 +100,10 @@ def _stop_recording(recording_id: str, cap_path: Optional[str] = None) -> dict:
     try:
         event = _run_cap_json("record", "stop", "--id", recording_id)
     except RuntimeError as e:
-        # If the user already stopped this recording directly from Cap's own
-        # UI (menu bar icon / Studio's Stop button), `cap record stop`
-        # correctly refuses to stop it again ("No recording session found
-        # with id ..."), rather than raising here as a beat failure — that
-        # already-stopped recording's own on-disk metadata is what actually
-        # confirms it finished, not our (now redundant) stop call.
+        # If another client already stopped this detached session,
+        # `cap record stop` correctly refuses a duplicate stop ("No recording
+        # session found with id ..."). Treat it as successfully finalized
+        # only when the recording's on-disk metadata confirms completion.
         if "No recording session found" in str(e) and cap_path and \
                 (Path(cap_path) / "recording-meta.json").exists():
             return {"recordingMetaExists": True}
@@ -115,24 +113,22 @@ def _stop_recording(recording_id: str, cap_path: Optional[str] = None) -> dict:
     return event
 
 
-def _is_recording_alive(recording_id: str) -> bool:
-    sessions = _run_cap_json("record", "status")
-    if not isinstance(sessions, list):
-        return False
-    return any(s.get("recordingId") == recording_id and s.get("alive") for s in sessions)
+def _wait_for_stop_request(recording_id: str) -> None:
+    """Wait for Ctrl-C, then let this process stop and finalize its own take.
 
-
-def _wait_for_external_stop(recording_id: str, poll_interval: float = 1.0) -> None:
-    """Block until Cap itself reports this recording is no longer active —
-    i.e. until the user stops it from Cap's own UI (menu bar icon / Studio's
-    Stop button). Polling `cap record status` rather than reading a keypress
-    from this terminal means an ordinary Enter press during the demo itself
-    (e.g. running a real command in the same terminal) never ends the
-    recording by accident.
+    Detached Cap CLI recordings are not owned by Cap Desktop's Studio UI,
+    so its menu-bar/Studio controls cannot be relied on. Ctrl-C is caught
+    here as a graceful stop request; it does not abort post-processing.
     """
-    print("Recording — stop it from Cap's own UI (menu bar icon) when you're done.")
-    while _is_recording_alive(recording_id):
-        time.sleep(poll_interval)
+    print(
+        f"Recording {recording_id} — press Ctrl-C here when you're done. "
+        "capt will stop and finalize it safely."
+    )
+    try:
+        while True:
+            time.sleep(1.0)
+    except KeyboardInterrupt:
+        print("\nStopping recording safely…")
 
 
 def _validate_project(cap_path: str) -> dict:
@@ -168,14 +164,13 @@ def run_beat(
     whole screen (screen_id is ignored in that case) — narrower capture
     scope for a single browser window rather than the full display.
 
-    until_stopped waits (after any steps finish driving) for the user to
-    stop the recording from Cap's own UI (menu bar icon / Studio's Stop
-    button), for a live, unscripted-length recording (e.g. narrating a
-    walkthrough) where there's no way to know the duration up front. Without
-    it, marker_source="global-capture" alone (no steps/url) would start and
-    immediately stop, since nothing else would tell run_beat to keep going.
-    Deliberately doesn't read a keypress from this terminal — that would
-    treat an ordinary Enter press during the demo itself as a stop signal.
+    until_stopped waits (after any steps finish driving) for Ctrl-C in this
+    terminal. The interrupt is handled as a graceful stop request: run_beat
+    stops GlobalCapture, invokes `cap record stop --id <recording_id>`, then
+    validates the project, writes the events sidecar, applies zoom, and
+    exports. Detached CLI recordings are not controlled by Cap Desktop's
+    Studio UI, so waiting for its menu-bar/Stop controls would leave the
+    workflow with no reliable way to finish.
     """
     from capt.record.steps import drive_steps
 
@@ -212,7 +207,7 @@ def run_beat(
                         storage_state=storage_state, user_data_dir=user_data_dir)
 
         if until_stopped:
-            _wait_for_external_stop(recording_id)
+            _wait_for_stop_request(recording_id)
     finally:
         try:
             if capture is not None:

@@ -73,9 +73,10 @@ before it wastes a take.
 
 For a live, narrated walkthrough (macOS only — no fixed length, no
 `--steps`), `capt demo` is a shortcut that auto-detects the screen and
-microphone and keeps recording until you stop it from **Cap's own UI**
-(menu bar icon) — not a keypress, so nothing you type or press during the
-demo itself can end the recording early:
+microphone and keeps recording until you press **Ctrl-C in the same
+terminal**. `capt` catches that interrupt as a graceful stop request,
+invokes `cap record stop` for the exact detached session, then finishes
+the events sidecar, zoom merge, validation, and MP4 export:
 
 ```bash
 uv run capt demo my-walkthrough --pick          # choose a live window/screen

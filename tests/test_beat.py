@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from capt.record.beat import (
-    BeatResult, _is_recording_alive, _run_cap_json, _start_recording,
-    _stop_recording, _wait_for_external_stop, run_beat,
+    BeatResult, _run_cap_json, _start_recording, _stop_recording,
+    _wait_for_stop_request, run_beat,
 )
 
 # These tests patch capt.record.macos_capture.GlobalCapture, which requires
@@ -250,18 +250,15 @@ def test_run_beat_skips_driving_when_no_url_and_steps_marker_source(tmp_path):
     mocks["drive_steps"].assert_not_called()
 
 
-def test_run_beat_until_stopped_waits_for_external_stop_before_stopping(tmp_path):
-    # Regression test: marker_source="global-capture" alone (no steps/url)
-    # used to start capture and immediately stop again, since nothing told
-    # run_beat to keep going — useless for a live, unscripted-length
-    # recording. until_stopped waits for Cap's own UI to report the
-    # recording as no longer active before the finally block runs
-    # _stop_recording — deliberately not a keypress (see beat.py docstring).
+def test_run_beat_until_stopped_handles_ctrl_c_then_stops_and_finalizes(tmp_path):
+    # A detached CLI recording is not owned by Cap Desktop's UI. The
+    # wrapper must catch Ctrl-C as a graceful stop request, then invoke
+    # cap record stop itself before continuing post-processing.
     patches, mocks = _patch_all()
     for p in patches:
         p.start()
     try:
-        with patch("capt.record.beat._wait_for_external_stop") as fake_wait:
+        with patch("capt.record.beat._wait_for_stop_request") as fake_wait:
             run_beat(url=None, steps=[], out_dir=str(tmp_path),
                      marker_source="steps", until_stopped=True)
     finally:
@@ -269,7 +266,9 @@ def test_run_beat_until_stopped_waits_for_external_stop_before_stopping(tmp_path
             p.stop()
 
     fake_wait.assert_called_once_with("rec-1")
-    mocks["_stop_recording"].assert_called_once_with("rec-1", cap_path=str(tmp_path / "full.cap"))
+    mocks["_stop_recording"].assert_called_once_with(
+        "rec-1", cap_path=str(tmp_path / "full.cap")
+    )
 
 
 def test_run_beat_without_until_stopped_does_not_wait(tmp_path):
@@ -277,7 +276,7 @@ def test_run_beat_without_until_stopped_does_not_wait(tmp_path):
     for p in patches:
         p.start()
     try:
-        with patch("capt.record.beat._wait_for_external_stop") as fake_wait:
+        with patch("capt.record.beat._wait_for_stop_request") as fake_wait:
             run_beat(url=None, steps=[], out_dir=str(tmp_path), marker_source="steps")
     finally:
         for p in patches:
@@ -286,30 +285,14 @@ def test_run_beat_without_until_stopped_does_not_wait(tmp_path):
     fake_wait.assert_not_called()
 
 
-def test_is_recording_alive_true_when_session_present_and_alive():
-    sessions = [{"recordingId": "rec-1", "alive": True}, {"recordingId": "rec-2", "alive": True}]
-    with patch("capt.record.beat._run_cap_json", return_value=sessions):
-        assert _is_recording_alive("rec-1") is True
+def test_wait_for_stop_request_handles_ctrl_c_as_graceful_request(capsys):
+    with patch("capt.record.beat.time.sleep", side_effect=KeyboardInterrupt):
+        _wait_for_stop_request("rec-1")
 
-
-def test_is_recording_alive_false_when_session_absent():
-    with patch("capt.record.beat._run_cap_json", return_value=[]):
-        assert _is_recording_alive("rec-1") is False
-
-
-def test_is_recording_alive_false_when_session_present_but_not_alive():
-    sessions = [{"recordingId": "rec-1", "alive": False}]
-    with patch("capt.record.beat._run_cap_json", return_value=sessions):
-        assert _is_recording_alive("rec-1") is False
-
-
-def test_wait_for_external_stop_polls_until_not_alive():
-    with patch("capt.record.beat._is_recording_alive", side_effect=[True, True, False]) as fake_alive, \
-         patch("capt.record.beat.time.sleep") as fake_sleep:
-        _wait_for_external_stop("rec-1", poll_interval=0.01)
-
-    assert fake_alive.call_count == 3
-    assert fake_sleep.call_count == 2
+    output = capsys.readouterr().out
+    assert "Recording rec-1" in output
+    assert "press Ctrl-C here" in output
+    assert "Stopping recording safely" in output
 
 
 def test_stop_recording_tolerates_already_stopped_externally(tmp_path):
