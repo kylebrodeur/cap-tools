@@ -21,9 +21,10 @@ implementation proving the technique works end to end.
   recordings have no per-segment cursor/zoom data). Launch it with
   `open -a Cap`. `curl -fsSL https://cap.so/install-cli.sh | sh` installs
   both the desktop app and the `cap` CLI shim.
-- This repo's Python env: `uv sync`.
+- This repo's Python env: `uv sync`. Run its commands as `uv run capt …`;
+  no virtualenv activation is required.
 - macOS Input Monitoring permission granted to whatever terminal runs
-  `capt` — `capt preflight` (below) checks this and tells you if it's
+  `capt` — `uv run capt preflight` (below) checks this and tells you if it's
   missing.
 
 ## The short path: `capt demo`
@@ -32,9 +33,9 @@ For a live, narrated walkthrough — no pre-written script, no fixed
 duration — `capt demo` wraps everything below into one command:
 
 ```bash
-capt demo my-walkthrough                       # screen + mic auto-detected
-capt demo my-walkthrough --pick                # interactive window/screen picker
-capt demo my-walkthrough --window <id>         # one window instead of the full screen
+uv run capt demo my-walkthrough                       # screen + mic auto-detected
+uv run capt demo my-walkthrough --pick                # interactive window/screen picker
+uv run capt demo my-walkthrough --window <id>         # one window instead of the full screen
 ```
 
 With `--pick` (or `capt record --pick`), `capt` lists every live window
@@ -62,8 +63,11 @@ shows up as its own window target, so you can record just the app instead
 of the whole desktop:
 
 ```bash
-cap record windows --json          # find the ReelBinder window id (owner "ReelBinder")
-capt demo reelbinder-demo --window <id>
+cd ~/workspace/slate
+open -a Cap
+uv run --project ~/workspace/__Tools/cap-tools \
+  capt demo reelbinder-demo --pick \
+  --out ~/workspace/slate/recordings
 ```
 
 Click through the app as normal; every click becomes a zoom marker and
@@ -82,7 +86,8 @@ than just using it.
 1. **Preflight, then find a screen or window ID**
 
    ```bash
-   capt preflight --marker-source steps+global-capture
+   open -a Cap
+   uv run capt preflight --marker-source steps+global-capture
    cap targets --json
    ```
 
@@ -112,7 +117,8 @@ than just using it.
    end, with no window to actually interact with anything.)
 
    ```bash
-   capt record --screen <screen-id> --marker-source global-capture --until-stopped \
+   uv run capt record --screen <screen-id> \
+     --marker-source global-capture --until-stopped \
      --mic "<device name>" --export-to test-walkthrough.mp4 --json
    ```
 
@@ -156,8 +162,8 @@ see `capt/record/steps.py` for the full schema. Example, verified live:
 ```
 
 ```bash
-capt record --screen <screen-id> --steps steps.json --marker-source steps \
-  --export-to demo.mp4 --json
+uv run capt record --screen <screen-id> --steps steps.json \
+  --marker-source steps --export-to demo.mp4 --json
 ```
 
 Each `goto`/`click`/`fill` and every explicit `mark` becomes a real event,
@@ -177,12 +183,12 @@ that needs login (e.g. the ReelBinder PWA), hand the driver your session:
 
 ```bash
 # option A: full Chrome profile — covers IndexedDB, service workers, PWAs
-capt record https://studio.reelbinder.app --out recordings \
+uv run capt record https://studio.reelbinder.app --out recordings \
   --user-data-dir "$HOME/Library/Application Support/Google/Chrome/Default" \
   --screen <screen-id> --steps steps.json --export-to demo.mp4
 
 # option B: bare storage state (cookies + localStorage only)
-capt record ... --storage-state state.json
+uv run capt record ... --storage-state state.json
 ```
 
 `--user-data-dir` wins when both are passed. Launch with the profile only
@@ -207,23 +213,23 @@ Open the exported MP4 and check:
 Then turn the recording into an illustrated guide from the same `.cap`:
 
 ```bash
-capt guide recordings/my-walkthrough.cap --format both
+uv run capt guide recordings/my-walkthrough.cap --format both
 ```
 
 ## Command reference
 
 | Command | What it does |
 |---|---|
-| `capt preflight [--marker-source …] [--url <u>]` | Readiness gates (G1–G8), including `cap doctor` capture-readiness |
-| `capt demo <name> [--pick] [--window <id>]` | Live narrated take: preflight + auto screen/mic + real-click zoom + auto export; press Ctrl-C in this terminal to stop and finalize safely |
-| `capt record --pick` / `capt record --window <id> --marker-source global-capture --until-stopped` | The same take, with manual control; Ctrl-C is graceful while waiting |
-| `capt record --steps steps.json [--screen <id>]` | Scripted, repeatable beat |
-| `capt record … --storage-state s.json` / `--user-data-dir <profile>` | Scripted beat inside a logged-in app |
-| `capt guide recordings/<name>.cap --format both` | Illustrated HTML + Markdown guide from a recording |
-| `capt guide recordings/<name>.cap --ai` | + decision/contradiction/open-question analysis (cap-guide-analysis) |
-| `capt zoom apply recordings/<name>.cap recordings/<name>.events.json` | Rebuild zoom from the events sidecar (e.g. after renaming manual-marks) |
-| `capt export recordings/<name>.cap out.mp4` | Export only (after config changes) |
-| `capt config recordings/<name>.cap --get` | Inspect project-config.json |
+| `uv run capt preflight [--marker-source …] [--url <u>]` | Readiness gates (G1–G8), including `cap doctor` capture-readiness |
+| `uv run capt demo <name> [--pick] [--window <id>]` | Live narrated take: preflight + auto screen/mic + real-click zoom + auto export; press Ctrl-C in this terminal to stop and finalize safely |
+| `uv run capt record --pick` / `uv run capt record --window <id> --marker-source global-capture --until-stopped` | The same take, with manual control; Ctrl-C is graceful while waiting |
+| `uv run capt record --steps steps.json [--screen <id>]` | Scripted, repeatable beat |
+| `uv run capt record … --storage-state s.json` / `--user-data-dir <profile>` | Scripted beat inside a logged-in app |
+| `uv run capt guide recordings/<name>.cap --format both` | Illustrated HTML + Markdown guide from a recording |
+| `uv run capt guide recordings/<name>.cap --ai` | + decision/contradiction/open-question analysis (cap-guide-analysis) |
+| `uv run capt zoom apply recordings/<name>.cap recordings/<name>.events.json` | Rebuild zoom from the events sidecar (e.g. after renaming manual-marks) |
+| `uv run capt export recordings/<name>.cap out.mp4` | Export only (after config changes) |
+| `uv run capt config recordings/<name>.cap --get` | Inspect project-config.json |
 
 Every recording leaves `<name>.events.json` next to the `.cap` — the exact
 click/mark timeline. Edit its labels (e.g. rename `manual-mark` to

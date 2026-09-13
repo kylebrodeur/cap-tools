@@ -47,10 +47,10 @@ Do not use `uv sync --active` to silence a mismatch: that deliberately
 targets whichever unrelated environment is already active.
 
 ```bash
-capt preflight --marker-source steps+global-capture   # check readiness
-capt record https://example.com --out recordings --screen <id> \
+uv run capt preflight --marker-source steps+global-capture
+uv run capt record https://example.com --out recordings --screen <id> \
   --marker-source steps+global-capture --export-to demo.mp4 --json
-capt guide path/to/recording.cap --format both
+uv run capt guide path/to/recording.cap --format both
 ```
 
 `--screen <id>` records the full display; pass `--window <id>` instead (both
@@ -89,6 +89,23 @@ That's shorthand for `capt record --marker-source global-capture
 --until-stopped`, with `--mic "<device>"` / `--system-audio` / `--camera <id>`
 also available directly on `capt record` (device names/ids from
 `cap targets --json`) if you want more control than `capt demo` gives you.
+
+To record into another project without installing `capt` there, point
+`uv` at cap-tools and give `capt` an explicit output directory. For
+ReelBinder from the Slate checkout:
+
+```bash
+cd ~/workspace/slate
+open -a Cap
+uv run --project ~/workspace/__Tools/cap-tools \
+  capt demo reelbinder-demo --pick \
+  --out ~/workspace/slate/recordings
+```
+
+Choose the window whose owner is `ReelBinder`. When the walkthrough is
+finished, return to this terminal and press **Ctrl-C once**. `capt` stops
+the exact detached recording it started and safely completes validation,
+the `.events.json` sidecar, zoom processing, and MP4 export.
 
 `capt record` runs in-process on macOS/Linux — no browser-automation hop
 required. On WSL it bridges to a Windows-hosted Cap Desktop install, since
