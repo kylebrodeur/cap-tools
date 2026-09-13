@@ -22,9 +22,23 @@ Two complementary halves, one `capt` CLI:
 ## Quick Start
 
 ```bash
+cd ~/workspace/__Tools/cap-tools
 uv sync
+uv run capt --version
 uv run capt --help
 ```
+
+Use `uv run …` from this checkout; you do not need to activate `.venv`.
+If the repository was moved and `uv` warns that `.venv` still points at
+another checkout, recreate it once:
+
+```bash
+rm -rf .venv
+uv sync
+```
+
+Do not use `uv sync --active` to silence a mismatch: that deliberately
+targets whichever unrelated environment is already active.
 
 ```bash
 capt preflight --marker-source steps+global-capture   # check readiness
@@ -57,9 +71,10 @@ microphone and keeps recording until you stop it from **Cap's own UI**
 demo itself can end the recording early:
 
 ```bash
-capt demo my-walkthrough                     # screen + mic auto-detected
-capt demo my-walkthrough --window <id>       # one window instead of the full screen
-capt demo my-walkthrough --no-mic            # skip narration audio
+uv run capt demo my-walkthrough --pick          # choose a live window/screen
+uv run capt demo my-walkthrough                 # screen + mic auto-detected
+uv run capt demo my-walkthrough --window <id>   # one window instead of the full screen
+uv run capt demo my-walkthrough --no-mic        # skip narration audio
 ```
 
 That's shorthand for `capt record --marker-source global-capture

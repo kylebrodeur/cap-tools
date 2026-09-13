@@ -225,3 +225,12 @@ def test_pick_target_lists_windows_then_screens():
     with patch("capt.targets.list_targets", return_value=fake_targets), \
          patch.object(cli.click, "prompt", return_value=1):
         assert cli._pick_target() == ("window", "8782")
+
+
+def test_cli_reports_package_version():
+    runner = CliRunner()
+
+    result = runner.invoke(main, ["--version"])
+
+    assert result.exit_code == 0
+    assert result.output.strip() == "capt, version 0.1.0"

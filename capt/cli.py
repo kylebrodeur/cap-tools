@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 import click
+from importlib.metadata import version
 
 
 def _is_wsl() -> bool:
@@ -56,6 +57,10 @@ def _pick_target():
 
 
 @click.group()
+@click.version_option(
+    version("cap-tools") if __package__ else "unknown",
+    prog_name="capt",
+)
 def main():
     pass
 
