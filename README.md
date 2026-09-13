@@ -29,6 +29,12 @@ uv run capt --help
 ```
 
 Use `uv run …` from this checkout; you do not need to activate `.venv`.
+Launch Cap Desktop before preflight or recording:
+
+```bash
+open -a Cap
+```
+
 If the repository was moved and `uv` warns that `.venv` still points at
 another checkout, recreate it once:
 
@@ -60,9 +66,10 @@ browser with `--storage-state <playwright-state.json>` (cookies +
 localStorage) or `--user-data-dir <profile-dir>` (full persistent profile —
 IndexedDB/service workers/PWA state; wins when both are given).
 
-Each `capt preflight` includes a `cap doctor` capture-readiness gate (G8)
-so a stale ScreenCaptureKit session in Cap Desktop fails fast instead of
-wasting a take.
+Each `capt preflight` includes a `cap doctor` capture-readiness gate (G8).
+Cap Desktop must be open; if it is closed, launch it with `open -a Cap`
+and rerun preflight. G8 also catches a stale ScreenCaptureKit session
+before it wastes a take.
 
 For a live, narrated walkthrough (macOS only — no fixed length, no
 `--steps`), `capt demo` is a shortcut that auto-detects the screen and

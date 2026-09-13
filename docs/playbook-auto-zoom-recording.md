@@ -17,9 +17,10 @@ implementation proving the technique works end to end.
 
 ## Prerequisites
 
-- Cap Desktop installed, in **Studio** mode (Instant recordings have no
-  per-segment cursor/zoom data). `curl -fsSL https://cap.so/install-cli.sh | sh`
-  installs both the desktop app and the `cap` CLI shim.
+- Cap Desktop installed, **running**, and in **Studio** mode (Instant
+  recordings have no per-segment cursor/zoom data). Launch it with
+  `open -a Cap`. `curl -fsSL https://cap.so/install-cli.sh | sh` installs
+  both the desktop app and the `cap` CLI shim.
 - This repo's Python env: `uv sync`.
 - macOS Input Monitoring permission granted to whatever terminal runs
   `capt` — `capt preflight` (below) checks this and tells you if it's
