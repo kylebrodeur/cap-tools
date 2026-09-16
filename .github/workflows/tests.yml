@@ -15,4 +15,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
       - run: uv sync
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+        if: runner.os == 'Linux'
+      - run: brew install ffmpeg
+        if: runner.os == 'macOS'
       - run: uv run pytest tests/ -v

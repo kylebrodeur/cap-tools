@@ -228,9 +228,13 @@ def test_pick_target_lists_windows_then_screens():
 
 
 def test_cli_reports_package_version():
+    """The CLI must report the installed distribution's version (metadata
+    lookup, not a hardcoded string) — version bumps shouldn't break this."""
+    from importlib.metadata import version
+
     runner = CliRunner()
 
     result = runner.invoke(main, ["--version"])
 
     assert result.exit_code == 0
-    assert result.output.strip() == "capt, version 0.1.0"
+    assert result.output.strip() == f"capt, version {version('cap-tools')}"
