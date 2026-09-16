@@ -1,6 +1,11 @@
 """Beat step schema (goto/click/fill/wait/mark) and the Playwright driver
 that executes them against a live page, marking a shared event tracker as it
 goes. See docs/superpowers/specs/2026-07-30-macos-record-support-design.md.
+
+Every step is a BEAT: it has a label, a start time, and a verified outcome.
+The driver records {label, elapsed_s, beat_s, ok, error} per beat so a take
+can be checked for completeness (every beat ran and succeeded) and the
+sidecar can drive per-beat section extraction downstream.
 """
 from typing import Optional
 
@@ -8,6 +13,7 @@ from playwright.sync_api import sync_playwright
 
 VALID_ACTIONS = {"goto", "click", "fill", "wait", "mark"}
 
+DEFAULT_STEP_TIMEOUT_MS = 20_000
 
 def validate_steps(steps: list) -> list:
     """Validate a list of step dicts, raising ValueError on the first problem.
@@ -41,29 +47,77 @@ def validate_steps(steps: list) -> list:
     return steps
 
 
-from playwright.sync_api import sync_playwright
 
-
-def _run_step(page, step: dict, tracker) -> None:
+def _beat_label(step: dict, index: int) -> str:
+    """Stable beat label: explicit label wins, else action+target."""
     action = step["action"]
+    label = step.get("label")
+    if label:
+        return label
     if action == "goto":
-        page.goto(step["url"])
-        tracker.mark(step.get("label", "goto"))
+        return f"goto:{step['url']}"
+    if action == "click":
+        return f"click:{step['selector']}"
+    if action == "fill":
+        return f"fill:{step['selector']}"
+    return f"{action}-{index}"
+
+
+def _do_step(page, step: dict, timeout_ms: int = DEFAULT_STEP_TIMEOUT_MS) -> None:
+    """Run one step's action against the page. Raises on failure — never
+    blocks forever: every Playwright call gets the beat timeout (per-step
+    'timeout' overrides it), so a dead selector fails the take loudly
+    instead of hanging the recording on dead air (the second-take flake)."""
+    action = step["action"]
+    t = step.get("timeout", timeout_ms)
+    if action == "goto":
+        page.goto(step["url"], timeout=t)
     elif action == "click":
-        page.click(step["selector"], click_count=step.get("count", 1))
-        tracker.mark(step.get("label", f"click:{step['selector']}"))
+        page.click(step["selector"], click_count=step.get("count", 1), timeout=t)
     elif action == "fill":
-        page.fill(step["selector"], step["text"])
-        tracker.mark(step.get("label", f"fill:{step['selector']}"))
+        page.fill(step["selector"], step["text"], timeout=t)
     elif action == "wait":
         if "selector" in step:
-            page.wait_for_selector(step["selector"])
+            page.wait_for_selector(step["selector"], timeout=t)
         elif "text" in step:
-            page.wait_for_selector(f"text={step['text']}")
+            page.wait_for_selector(f"text={step['text']}", timeout=t)
         elif "ms" in step:
             page.wait_for_timeout(step["ms"])
-    elif action == "mark":
-        tracker.mark(step["label"])
+
+
+def run_beats(page, steps: list, tracker,
+              timeout_ms: int = DEFAULT_STEP_TIMEOUT_MS) -> list:
+    """Drive each step as a verified beat, in order.
+
+    Every beat records THREE tracker marks:
+      {label}:start, {label}:ok (or :fail) — plus returns a report list of
+      {label, elapsed_s, beat_s, ok, error} where beat_s is the beat's own
+      duration. A failed beat raises immediately (after recording :fail) so
+      a take never continues in a silently broken state — the recording is
+      still stopped and finalized by the caller's finally block.
+    """
+    import time as _time
+
+    report = []
+    for i, step in enumerate(steps):
+        label = _beat_label(step, i)
+        tracker.mark(f"{label}:start")
+        t0 = _time.monotonic()
+        ok, error = True, None
+        try:
+            _do_step(page, step, timeout_ms)
+        except Exception as e:
+            ok, error = False, f"{type(e).__name__}: {e}"
+        beat_s = round(_time.monotonic() - t0, 3)
+        tracker.mark(f"{label}:{'ok' if ok else 'fail'}")
+        report.append({
+            "index": i, "label": label, "action": step["action"],
+            "elapsed_s": tracker.events()[-1]["elapsed_s"],
+            "beat_s": beat_s, "ok": ok, "error": error,
+        })
+        if not ok:
+            raise RuntimeError(f"beat {i} ({label}) failed: {error}")
+    return report
 
 
 _VISIBLE_ACTIONS = {"goto", "click", "fill"}  # need an actual page on screen; wait/mark don't
@@ -96,9 +150,15 @@ def _browser_context_args(storage_state, user_data_dir) -> dict:
 
 def drive_steps(url, steps: list, tracker,
                 storage_state: Optional[str] = None,
-                user_data_dir: Optional[str] = None) -> None:
+                user_data_dir: Optional[str] = None,
+                timeout_ms: int = DEFAULT_STEP_TIMEOUT_MS) -> list:
     """Launch Playwright Chromium, optionally navigate to url, then drive
-    each step in order, marking `tracker` as described in `_run_step`.
+    each step as a VERIFIED beat in order (see run_beats).
+
+    Returns the beat report: a list of {index, label, action, elapsed_s,
+    beat_s, ok, error} — one entry per step, elapsed_s relative to the
+    tracker's recording-anchored clock. Raises RuntimeError on the first
+    failed beat (the take is broken; let the caller's finally finalize it).
 
     storage_state: path to a Playwright storageState JSON — cookies +
     localStorage from a previous authenticated session, applied to a
@@ -128,11 +188,12 @@ def drive_steps(url, steps: list, tracker,
                 k: v for k, v in auth.items() if k != "user_data_dir"})
             page = context.new_page()
         try:
+            report = []
             if url:
                 page.goto(url)
                 tracker.mark("page-load")
-            for step in steps:
-                _run_step(page, step, tracker)
+            report = run_beats(page, steps, tracker, timeout_ms=timeout_ms)
+            return report
         finally:
             if browser is not None:
                 browser.close()

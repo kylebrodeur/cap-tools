@@ -15,7 +15,7 @@ FAKE_TARGETS = {
 def _fake_result(tmp_path):
     return BeatResult(
         recording_id="rec-1", cap_path=str(tmp_path / "my-demo.cap"),
-        events=[], zoom_segments=[], export_path=str(tmp_path / "my-demo.mp4"),
+        events=[], zoom_segments=[], scene_segments=[], export_path=str(tmp_path / "my-demo.mp4"),
     )
 
 

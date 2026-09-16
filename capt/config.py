@@ -74,7 +74,56 @@ PRESET_RAW = {
     "screenMovementSpring": {"stiffness": 200.0, "damping": 40.0, "mass": 2.25},
 }
 
-PRESETS = {"demo": PRESET_DEMO, "clean": PRESET_CLEAN, "raw": PRESET_RAW}
+PRESET_GRADIENT = {
+    "background": {
+        "source": {"type": "gradient", "from": [30, 27, 54], "to": [88, 40, 120],
+                   "angle": 135, "noise_intensity": 0.1, "noise_scale": 1.0,
+                   "animation_speed": 0.0},
+        "blur": 0.0, "padding": 10.0, "rounding": 7.5, "roundingType": "squircle",
+        "inset": 0, "crop": None, "shadow": 73.6,
+        "advancedShadow": {"size": 14.4, "opacity": 68.1, "blur": 3.8},
+        "border": None,
+    },
+    "camera": {"hide": True},
+    "audio": {"mute": False},
+    "cursor": {
+        "hide": False, "size": 100, "type": "auto", "animationStyle": "mellow",
+        "motionBlur": 0.5, "raw": False, "useSvg": True,
+    },
+    "hotkeys": {"show": False},
+    "screenMotionBlur": 0.5,
+    "screenMovementSpring": {"stiffness": 200.0, "damping": 40.0, "mass": 2.25},
+}
+
+PRESET_ANIMATED = {
+    "background": {
+        "source": {"type": "animatedGradient", "config": {
+            "colorStops": [{"position": 0.0, "color": [30, 27, 54]},
+                           {"position": 1.0, "color": [88, 40, 120]}],
+            "direction": 135, "flowScale": 1.0, "flowStrength": 0.5,
+            "curvature": 0.5, "detail": 0.5, "relief": 0.3, "shader": "flowing",
+            "ripples": 0.4, "grainAmount": 0.08, "grainSize": 1.0,
+            "motionSpeed": 0.3, "seed": 7,
+        }},
+        "blur": 0.0, "padding": 10.0, "rounding": 7.5, "roundingType": "squircle",
+        "inset": 0, "crop": None, "shadow": 73.6,
+        "advancedShadow": {"size": 14.4, "opacity": 68.1, "blur": 3.8},
+        "border": None,
+    },
+    "camera": {"hide": True},
+    "audio": {"mute": False},
+    "cursor": {
+        "hide": False, "size": 100, "type": "auto", "animationStyle": "mellow",
+        "motionBlur": 0.5, "raw": False, "useSvg": True,
+    },
+    "hotkeys": {"show": False},
+    "screenMotionBlur": 0.5,
+    "screenMovementSpring": {"stiffness": 200.0, "damping": 40.0, "mass": 2.25},
+}
+
+PRESETS = {"demo": PRESET_DEMO, "clean": PRESET_CLEAN, "raw": PRESET_RAW,
+           "gradient": PRESET_GRADIENT, "animated": PRESET_ANIMATED}
+
 
 
 # ── Base config skeleton ──────────────────────────────────────────────────────
@@ -84,8 +133,7 @@ def _base_config() -> dict:
         "aspectRatio": None,
         "timeline": {
             "segments": [{"recordingSegment": 0, "timescale": 1.0, "start": 0.0, "end": 9999}],
-            "zoomSegments": [],
-            "sceneSegments": [], "maskSegments": [],
+            "zoomSegments": [], "camera3dSegments": [], "maskSegments": [],
             "textSegments": [], "captionSegments": [], "keyboardSegments": [],
         },
         "captions": None,
@@ -94,8 +142,6 @@ def _base_config() -> dict:
         "annotations": [],
     }
 
-
-# ── Public API ────────────────────────────────────────────────────────────────
 
 def build_config(
     preset: str = "demo",

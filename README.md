@@ -113,7 +113,22 @@ screen capture has to target the Windows desktop (see
 [`skills/cap-cli`](skills/cap-cli/) and `source skills/cap-cli/setup.sh`).
 
 Full command reference: `capt <command> --help` for any of `record`, `guide`,
-`export`, `assemble`, `preflight`, `config`, `zoom`.
+`export`, `assemble`, `preflight`, `config`, `zoom`, `scene`, `section`.
+
+**New in Cap 0.6:** `capt scene` and `capt record/demo --scene` build
+`timeline.camera3dSegments` — the camera orbits, tilts, or pushes around
+the whole recording (see [`skills/capt-3d-scenes`](skills/capt-3d-scenes/)).
+Verified headless on 0.6.0: an applied orbit scene renders through plain
+`cap export` with no Studio. `capt config --preset gradient|animated` also
+gains 0.6's moving gradient backgrounds.
+
+**Verified beats & sections:** `capt record --steps` now fails loudly when a
+scripted beat breaks (no more silent half-working takes) and writes a
+`<name>.beats.json` completeness report. `capt section list/cut` turns a
+beats report — or any events sidecar / hand-written sections JSON — into
+labeled MP4 sections cut from the styled full-take export: record the whole
+product take once, apply effects to it, export once, then cut sections for
+the demo timeline without re-rendering.
 
 ## Install a skill into any agent
 

@@ -81,6 +81,9 @@ def main():
 @click.option("--mic", default=None, help="Microphone device name to record (see `cap targets mics`)")
 @click.option("--system-audio", is_flag=True, help="Capture system audio")
 @click.option("--camera", default=None, help="Camera device id to record (see `cap targets cameras`)")
+@click.option("--scene", default=None,
+              type=click.Choice(["reveal", "punch", "orbit", "flat"]),
+              help="Also apply a 3D camera scene (Cap 0.6+) from the same markers")
 @click.option("--until-stopped", is_flag=True,
               help="Keep recording after any --steps finish (or with no steps) until you press Ctrl-C; "
                    "capt catches it, stops the detached Cap recording, and completes sidecar/zoom/export "
@@ -94,7 +97,7 @@ def main():
               help="Interactively pick a screen or window (TTY only; agents pass --screen/--window instead)")
 @click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
 def record(url, name, out, screen, window, steps, marker_source, export_to,
-           mic, system_audio, camera, until_stopped, storage_state, user_data_dir,
+           mic, system_audio, camera, scene, until_stopped, storage_state, user_data_dir,
            pick, json_out):
     """Automate a browser-driven screen recording with automatic zoom.
 
@@ -122,14 +125,15 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
 
     if _is_wsl():
         _record_via_windows(url, name, out, screen, window, steps, marker_source, export_to,
-                            mic, system_audio, camera, until_stopped, json_out)
+                            mic, system_audio, camera, scene, until_stopped, json_out)
         return
 
     from capt.record.beat import run_beat
     result = run_beat(url, step_list, out, name=name, screen_id=screen, window_id=window,
                       marker_source=marker_source, export_to=export_to,
                       mic=mic, system_audio=system_audio, camera=camera, until_stopped=until_stopped,
-                      storage_state=storage_state, user_data_dir=user_data_dir)
+                      storage_state=storage_state, user_data_dir=user_data_dir,
+                      scene_style=scene)
 
 
     if json_out:
@@ -139,6 +143,7 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
             "capPath": result.cap_path,
             "events": result.events,
             "zoomSegments": result.zoom_segments,
+            "sceneSegments": result.scene_segments,
             "exportPath": result.export_path,
         }))
     else:
@@ -148,7 +153,7 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
 
 
 def _record_via_windows(url, name, out, screen, window, steps, marker_source, export_to,
-                        mic, system_audio, camera, until_stopped, json_out):
+                        mic, system_audio, camera, scene, until_stopped, json_out):
     """WSL -> PowerShell -> Windows beat_runner_entry.py, unchanged in spirit
     from the pre-macOS-support implementation."""
     from capt import tailscale
@@ -168,6 +173,8 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
         ps_cmd += f" --screen {screen}"
     if steps:
         ps_cmd += f" --steps {steps}"
+    if scene:
+        ps_cmd += f" --scene {scene}"
     if marker_source and marker_source != "steps":
         ps_cmd += f" --marker-source {marker_source}"
     if export_to:
@@ -218,6 +225,7 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
                 "capPath": result.get("cap_path"),
                 "events": result.get("events"),
                 "zoomSegments": result.get("zoom_segments"),
+                "sceneSegments": result.get("scene_segments"),
                 "exportPath": result.get("export_path"),
             }))
     else:
@@ -237,8 +245,11 @@ def _record_via_windows(url, name, out, screen, window, steps, marker_source, ex
 @click.option("--no-mic", is_flag=True, help="Skip narration audio entirely")
 @click.option("--system-audio", is_flag=True, help="Also capture system audio")
 @click.option("--skip-preflight", is_flag=True, help="Skip the readiness check")
+@click.option("--scene", default=None,
+              type=click.Choice(["reveal", "punch", "orbit", "flat"]),
+              help="Also apply a 3D camera scene (Cap 0.6+) from the captured clicks")
 @click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
-def demo(name, out, screen, window, pick, mic, no_mic, system_audio, skip_preflight, json_out):
+def demo(name, out, screen, window, pick, mic, no_mic, system_audio, scene, skip_preflight, json_out):
     """Record a live, narrated demo with sensible defaults filled in.
 
     Shortcut for `capt record --marker-source global-capture --until-stopped`
@@ -310,6 +321,7 @@ def demo(name, out, screen, window, pick, mic, no_mic, system_audio, skip_prefli
         None, [], out, name=name, screen_id=screen, window_id=window,
         marker_source="global-capture", export_to=export_path,
         mic=mic, system_audio=system_audio, until_stopped=True,
+        scene_style=scene,
     )
 
     if json_out:
@@ -319,6 +331,7 @@ def demo(name, out, screen, window, pick, mic, no_mic, system_audio, skip_prefli
             "capPath": result.cap_path,
             "events": result.events,
             "zoomSegments": result.zoom_segments,
+            "sceneSegments": result.scene_segments,
             "exportPath": result.export_path,
         }))
         return
@@ -507,6 +520,99 @@ def zoom_apply(project_path, events_path, amount, yes, json_out):
         click.echo(f"✓ Wrote {len(segments)} zoom segment(s) to {project_path}")
 
 
+# ── scene ─────────────────────────────────────────────────────────────────────
+
+
+@main.group()
+def scene():
+    """Build and apply 3D camera scenes (Cap 0.6+) from recording markers.
+
+    Like `capt zoom`, but for timeline.camera3dSegments: the camera orbits,
+    tilts, and pushes in around the recording instead of cropping toward
+    the cursor. Scenes compose with zoom segments — apply both, export once.
+    """
+    pass
+
+
+@scene.command("propose")
+@click.argument("events_path")
+@click.option("--style", default="reveal",
+              type=click.Choice(["reveal", "punch", "orbit", "flat"]),
+              help="reveal: full-clip lean-back; punch: camera push per event; "
+                   "orbit: tiltY sweeps across the clip; flat: no-op")
+@click.option("--duration", default=None, type=float,
+              help="Clip length in seconds (default: last marker + hold)")
+@click.option("--transition-in", default=0.5, type=float, help="Ease-in ramp (s)")
+@click.option("--transition-out", default=0.5, type=float, help="Ease-out ramp (s)")
+@click.option("--blur", default=0.0, type=float, help="Background blur strength (0-20)")
+def scene_propose(events_path, style, duration, transition_in, transition_out, blur):
+    """Print the camera3dSegments a style would produce, without writing."""
+    from capt.scene3d import build_scene_segments
+
+    events = json.loads(Path(events_path).read_text())
+    segments = build_scene_segments(events, style=style, duration=duration,
+                                    transition_in=transition_in,
+                                    transition_out=transition_out, blur=blur)
+    click.echo(json.dumps({"type": "Proposed", "sceneSegments": segments}, indent=2))
+
+
+@scene.command("apply")
+@click.argument("project_path")
+@click.argument("events_path")
+@click.option("--style", default="reveal",
+              type=click.Choice(["reveal", "punch", "orbit", "flat"]),
+              help="reveal: full-clip lean-back; punch: camera push per event; "
+                   "orbit: tiltY sweeps across the clip; flat: no-op")
+@click.option("--duration", default=None, type=float,
+              help="Clip length in seconds (default: last marker + hold)")
+@click.option("--transition-in", default=0.5, type=float, help="Ease-in ramp (s)")
+@click.option("--transition-out", default=0.5, type=float, help="Ease-out ramp (s)")
+@click.option("--blur", default=0.0, type=float, help="Background blur strength (0-20)")
+@click.option("--yes", is_flag=True, help="Write without an interactive confirmation")
+@click.option("--json", "json_out", is_flag=True)
+def scene_apply(project_path, events_path, style, duration, transition_in,
+                transition_out, blur, yes, json_out):
+    """Build camera3dSegments from markers and merge them into a project's config.
+
+    Reads the project's CURRENT config, builds timeline.camera3dSegments
+    from the markers in events_path, and merges them in — scenes replace
+    each other (compose with zoom, not with other scenes). Shows the
+    proposed segments and asks for confirmation before writing, unless
+    --yes is passed.
+    """
+    from capt.config import read_config, write_config
+    from capt.scene3d import build_scene_segments, merge_scene_segments
+
+    events = json.loads(Path(events_path).read_text())
+    try:
+        segments = build_scene_segments(events, style=style, duration=duration,
+                                        transition_in=transition_in,
+                                        transition_out=transition_out, blur=blur)
+    except ValueError as e:
+        raise click.UsageError(str(e))
+
+    current = read_config(project_path)
+    merged = merge_scene_segments(current, segments)
+
+    if json_out:
+        click.echo(json.dumps({"type": "Proposed", "sceneSegments": segments}))
+    else:
+        click.echo(f"Proposed {len(segments)} scene segment(s) ({style}):")
+        click.echo(json.dumps(segments, indent=2))
+
+    if not yes:
+        if not click.confirm("Write this merged config to the project?"):
+            click.echo("Aborted — nothing written.")
+            sys.exit(1)
+
+    write_config(project_path, merged)
+
+    if json_out:
+        click.echo(json.dumps({"type": "Completed", "path": project_path, "sceneSegments": segments}))
+    else:
+        click.echo(f"✓ Wrote {len(segments)} scene segment(s) to {project_path}")
+
+
 # ── config ────────────────────────────────────────────────────────────────────
 
 @main.command()
@@ -536,6 +642,64 @@ def config(project_path, get_config, preset, zoom, json_out):
     else:
         click.echo("Use --get to read or --preset to apply a preset.")
 
+
+
+# ── section ───────────────────────────────────────────────────────────────────
+
+
+@main.group()
+def section():
+    """Extract labeled sections from a styled recording's MP4 export.
+
+    Record the whole take once (completeness via .beats.json), apply
+    effects (zoom/scene/backgrounds) to the full take, export it once,
+    then cut labeled sections for the demo timeline with ffmpeg.
+    `cap export` ignores timeline trim headlessly, so cuts happen
+    post-export — re-cuttable any time without re-rendering.
+    """
+    pass
+
+
+@section.command("list")
+@click.argument("source")
+@click.option("--labeled-only", is_flag=True,
+              help="Beats reports: keep only named script beats (drop auto-labeled action/wait beats)")
+@click.option("--json", "json_out", is_flag=True)
+def section_list(source, labeled_only, json_out):
+    """Show the sections a beats report / events sidecar / sections JSON yields."""
+    from capt.sections import load_sections
+
+    sections = load_sections(source, labeled_only=labeled_only)
+    if json_out:
+        click.echo(json.dumps({"type": "Proposed", "sections": sections}))
+    else:
+        click.echo(f"{len(sections)} section(s):")
+        for s in sections:
+            click.echo(f"  {s['start_s']:>8.2f} → {s['end_s']:>8.2f}  {s['name']}")
+
+
+@section.command("cut")
+@click.argument("styled_mp4")
+@click.argument("source")
+@click.option("--out", default="sections", help="Output directory for section MP4s")
+@click.option("--labeled-only", is_flag=True,
+              help="Beats reports: keep only named script beats (drop auto-labeled action/wait beats)")
+@click.option("--stream-copy", is_flag=True,
+              help="Stream-copy instead of re-encoding (fast; cuts land on keyframes)")
+@click.option("--json", "json_out", is_flag=True)
+def section_cut(styled_mp4, source, out, labeled_only, stream_copy, json_out):
+    """Cut every section out of the styled full-take export."""
+    from capt.sections import load_sections, export_sections
+    sections = load_sections(source, labeled_only=labeled_only)
+    paths = export_sections(styled_mp4, styled_mp4, out, sections,
+                            reencode=not stream_copy)
+    if json_out:
+        click.echo(json.dumps({"type": "Completed", "sections": [
+            {"name": s["name"], "path": p} for s, p in zip(sections, paths)]}))
+    else:
+        click.echo(f"✓ Cut {len(paths)} section(s) into {out}:")
+        for s, p in zip(sections, paths):
+            click.echo(f"  {s['name']} → {p}")
 
 if __name__ == "__main__":
     main()

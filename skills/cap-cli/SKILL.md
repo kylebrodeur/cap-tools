@@ -57,3 +57,13 @@ export CAP_SERVER_URL="https://cap.so"          # Or self-hosted URL
 | `setup.sh` | Defines the `cap()` shell function bridging to `cap-cli.exe` |
 | `agent.sh` | Verifies the bridge works and points agents at `cap agents install` |
 | `SKILL.md` | This file |
+
+## 3D scenes (Cap 0.6+)
+
+Once `cap` resolves on a 0.6.0+ install, `capt scene` (see
+[`skills/capt-3d-scenes`](../capt-3d-scenes/SKILL.md)) builds
+`timeline.camera3dSegments` — camera orbit/tilt/depth moves that render
+headlessly via `cap export`.
+
+For scripted demo takes: verified beats + section cutting live in
+[`skills/capt-demo-sections`](../capt-demo-sections/SKILL.md).

@@ -1,7 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from capt.record.steps import validate_steps, _run_step, drive_steps, _needs_visible_browser
+from capt.record.steps import (
+    validate_steps, run_beats, _do_step, drive_steps, _needs_visible_browser,
+)
 
 
 def test_validate_steps_accepts_valid_goto():
@@ -64,65 +66,74 @@ def test_validate_steps_error_identifies_step_index():
         ])
 
 
-def test_run_step_click_calls_page_and_marks_tracker():
+def _fake_tracker():
+    """Tracker stub whose events() returns increasing elapsed_s."""
+    t = MagicMock()
+    t.events.return_value = [{"elapsed_s": 1.0}]
+    return t
+
+def test_run_beat_click_calls_page_and_marks_start_ok():
     page = MagicMock()
-    tracker = MagicMock()
-    _run_step(page, {"action": "click", "selector": "#save"}, tracker)
-    page.click.assert_called_once_with("#save", click_count=1)
-    tracker.mark.assert_called_once_with("click:#save")
+    tracker = _fake_tracker()
+    run_beats(page, [{"action": "click", "selector": "#save"}], tracker)
+    page.click.assert_called_once_with("#save", click_count=1, timeout=20000)
+    marks = [c.args[0] for c in tracker.mark.call_args_list]
+    assert marks == ["click:#save:start", "click:#save:ok"]
 
 
-def test_run_step_click_forwards_count():
+def test_run_beat_click_forwards_count():
     page = MagicMock()
-    tracker = MagicMock()
-    _run_step(page, {"action": "click", "selector": "#save", "count": 2}, tracker)
-    page.click.assert_called_once_with("#save", click_count=2)
-    tracker.mark.assert_called_once_with("click:#save")
+    tracker = _fake_tracker()
+    run_beats(page, [{"action": "click", "selector": "#save", "count": 2}], tracker)
+    page.click.assert_called_once_with("#save", click_count=2, timeout=20000)
 
-def test_run_step_fill_calls_page_and_marks_tracker():
+def test_run_beat_fill_calls_page_and_marks():
     page = MagicMock()
-    tracker = MagicMock()
-    _run_step(page, {"action": "fill", "selector": "#name", "text": "Kyle"}, tracker)
-    page.fill.assert_called_once_with("#name", "Kyle")
-    tracker.mark.assert_called_once_with("fill:#name")
+    tracker = _fake_tracker()
+    run_beats(page, [{"action": "fill", "selector": "#name", "text": "Kyle"}], tracker)
+    page.fill.assert_called_once_with("#name", "Kyle", timeout=20000)
+    marks = [c.args[0] for c in tracker.mark.call_args_list]
+    assert marks == ["fill:#name:start", "fill:#name:ok"]
 
 
-def test_run_step_goto_calls_page_and_marks_tracker():
+def test_run_beat_goto_uses_derived_label():
     page = MagicMock()
-    tracker = MagicMock()
-    _run_step(page, {"action": "goto", "url": "https://example.com"}, tracker)
-    page.goto.assert_called_once_with("https://example.com")
-    tracker.mark.assert_called_once_with("goto")
+    tracker = _fake_tracker()
+    run_beats(page, [{"action": "goto", "url": "https://example.com"}], tracker)
+    page.goto.assert_called_once_with("https://example.com", timeout=20000)
+    marks = [c.args[0] for c in tracker.mark.call_args_list]
+    assert marks == ["goto:https://example.com:start", "goto:https://example.com:ok"]
 
 
-def test_run_step_mark_uses_given_label_only():
+def test_run_beat_mark_uses_given_label():
     page = MagicMock()
-    tracker = MagicMock()
-    _run_step(page, {"action": "mark", "label": "opened-settings"}, tracker)
-    tracker.mark.assert_called_once_with("opened-settings")
+    tracker = _fake_tracker()
+    run_beats(page, [{"action": "mark", "label": "opened-settings"}], tracker)
+    marks = [c.args[0] for c in tracker.mark.call_args_list]
+    assert marks == ["opened-settings:start", "opened-settings:ok"]
     page.click.assert_not_called()
 
 
-def test_run_step_wait_ms_calls_wait_for_timeout():
+def test_run_beat_wait_ms_calls_wait_for_timeout():
     page = MagicMock()
-    tracker = MagicMock()
-    _run_step(page, {"action": "wait", "ms": 500}, tracker)
+    tracker = _fake_tracker()
+    report = run_beats(page, [{"action": "wait", "ms": 500}], tracker)
     page.wait_for_timeout.assert_called_once_with(500)
-    tracker.mark.assert_not_called()
+    assert report[0]["ok"] is True
 
 
-def test_run_step_wait_selector_calls_wait_for_selector():
+def test_run_beat_wait_selector_calls_wait_for_selector():
     page = MagicMock()
-    tracker = MagicMock()
-    _run_step(page, {"action": "wait", "selector": "#ready"}, tracker)
-    page.wait_for_selector.assert_called_once_with("#ready")
+    tracker = _fake_tracker()
+    run_beats(page, [{"action": "wait", "selector": "#ready"}], tracker)
+    page.wait_for_selector.assert_called_once_with("#ready", timeout=20000)
 
 
-def test_run_step_wait_text_calls_wait_for_selector_with_text_prefix():
+def test_run_beat_wait_text_calls_wait_for_selector_with_text_prefix():
     page = MagicMock()
-    tracker = MagicMock()
-    _run_step(page, {"action": "wait", "text": "Done"}, tracker)
-    page.wait_for_selector.assert_called_once_with("text=Done")
+    tracker = _fake_tracker()
+    run_beats(page, [{"action": "wait", "text": "Done"}], tracker)
+    page.wait_for_selector.assert_called_once_with("text=Done", timeout=20000)
 
 
 def test_drive_steps_launches_browser_navigates_and_closes():
@@ -144,7 +155,7 @@ def test_drive_steps_launches_browser_navigates_and_closes():
         drive_steps("https://example.com", [{"action": "click", "selector": "#go"}], tracker)
 
     fake_page.goto.assert_called_once_with("https://example.com")
-    fake_page.click.assert_called_once_with("#go", click_count=1)
+    fake_page.click.assert_called_once_with("#go", click_count=1, timeout=20000)
     fake_browser.close.assert_called_once()
 
 
@@ -212,7 +223,8 @@ def test_drive_steps_skips_navigation_when_no_url():
         drive_steps(None, [{"action": "mark", "label": "manual-step"}], tracker)
 
     fake_page.goto.assert_not_called()
-    tracker.mark.assert_called_once_with("manual-step")
+    marks = [c.args[0] for c in tracker.mark.call_args_list]
+    assert marks == ["manual-step:start", "manual-step:ok"]
 
 
 def test_needs_visible_browser_true_when_url_given():

@@ -10,7 +10,7 @@ from capt.record.beat import BeatResult
 def test_record_calls_run_beat_in_process_when_not_wsl(tmp_path):
     fake_result = BeatResult(
         recording_id="rec-1", cap_path=str(tmp_path / "full.cap"),
-        events=[], zoom_segments=[], export_path=None,
+        events=[], zoom_segments=[], scene_segments=[], export_path=None,
     )
     with patch("capt.cli._is_wsl", return_value=False), \
          patch("capt.record.beat.run_beat", return_value=fake_result) as run_beat_mock:
@@ -27,7 +27,7 @@ def test_record_calls_run_beat_in_process_when_not_wsl(tmp_path):
 def test_record_forwards_window_id_to_run_beat(tmp_path):
     fake_result = BeatResult(
         recording_id="rec-1", cap_path=str(tmp_path / "full.cap"),
-        events=[], zoom_segments=[], export_path=None,
+        events=[], zoom_segments=[], scene_segments=[], export_path=None,
     )
     with patch("capt.cli._is_wsl", return_value=False), \
          patch("capt.record.beat.run_beat", return_value=fake_result) as run_beat_mock:
@@ -86,7 +86,7 @@ def test_record_reads_steps_json_file(tmp_path):
     steps_file.write_text(json.dumps([{"action": "click", "selector": "#go"}]))
     fake_result = BeatResult(
         recording_id="rec-1", cap_path=str(tmp_path / "full.cap"),
-        events=[], zoom_segments=[], export_path=None,
+        events=[], zoom_segments=[], scene_segments=[], export_path=None,
     )
     with patch("capt.cli._is_wsl", return_value=False), \
          patch("capt.record.beat.run_beat", return_value=fake_result) as run_beat_mock:
@@ -137,7 +137,7 @@ def test_record_non_json_output_uses_cap_path_from_windows_result(tmp_path):
 def test_record_forwards_storage_state_to_run_beat(tmp_path):
     fake_result = BeatResult(
         recording_id="rec-1", cap_path=str(tmp_path / "full.cap"),
-        events=[], zoom_segments=[], export_path=None,
+        events=[], zoom_segments=[], scene_segments=[], export_path=None,
     )
     state_file = tmp_path / "state.json"
     state_file.write_text("{}")
@@ -155,7 +155,7 @@ def test_record_forwards_storage_state_to_run_beat(tmp_path):
 def test_record_forwards_user_data_dir_to_run_beat(tmp_path):
     fake_result = BeatResult(
         recording_id="rec-1", cap_path=str(tmp_path / "full.cap"),
-        events=[], zoom_segments=[], export_path=None,
+        events=[], zoom_segments=[], scene_segments=[], export_path=None,
     )
     profile_dir = tmp_path / "profile"
     profile_dir.mkdir()
@@ -172,7 +172,7 @@ def test_record_forwards_user_data_dir_to_run_beat(tmp_path):
 def test_record_pick_selects_window_from_targets(tmp_path):
     fake_result = BeatResult(
         recording_id="rec-1", cap_path=str(tmp_path / "full.cap"),
-        events=[], zoom_segments=[], export_path=None,
+        events=[], zoom_segments=[], scene_segments=[], export_path=None,
     )
     fake_targets = {
         "screens": [{"id": "1", "name": "Main", "primary": True}],

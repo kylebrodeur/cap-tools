@@ -228,6 +228,7 @@ uv run capt guide recordings/my-walkthrough.cap --format both
 | `uv run capt guide recordings/<name>.cap --format both` | Illustrated HTML + Markdown guide from a recording |
 | `uv run capt guide recordings/<name>.cap --ai` | + decision/contradiction/open-question analysis (cap-guide-analysis) |
 | `uv run capt zoom apply recordings/<name>.cap recordings/<name>.events.json` | Rebuild zoom from the events sidecar (e.g. after renaming manual-marks) |
+| `uv run capt scene apply recordings/<name>.cap recordings/<name>.events.json --style orbit --yes` | Apply a 3D camera scene (Cap 0.6+) from the same sidecar |
 | `uv run capt export recordings/<name>.cap out.mp4` | Export only (after config changes) |
 | `uv run capt config recordings/<name>.cap --get` | Inspect project-config.json |
 
@@ -242,6 +243,75 @@ addition (`upstream/workflows-mdx-addition.md`) describes the same
 pattern in Cap-native terms (`cap record start`/`stop`, manual zoom-segment
 merge, `cap export`) for any agent to follow without `capt` — that's what's
 ready to become a real PR against `CapSoftware/Cap`, once submitted.
+
+## 3D scenes (Cap 0.6+)
+
+Zoom segments crop toward the cursor; `timeline.camera3dSegments` moves the
+whole camera in 3D instead (orbit/tilt/depth), and the two compose. The
+schema, style guide (`reveal`/`punch`/`orbit`/`flat`), and geometry contract
+live in [`skills/capt-3d-scenes/SKILL.md`](../skills/capt-3d-scenes/SKILL.md).
+
+Verified live on 0.6.0 (2026-09-15): apply an orbit scene, export, and
+frames inside the segment window differ on 60.8% of downscaled pixels —
+the camera visibly swings (edge lean −5.6° → −22.9° across the window,
+level again after the segment ends). One gotcha the testing surfaced:
+**the first `cap export` of a fresh `.cap` strips `camera3dSegments` and
+renders without the pose** (Cap's publish pass). Warm up with a throwaway
+export, then apply the scene, then export for real:
+
+```bash
+cap export recordings/demo.cap /tmp/warmup.mp4 --json   # first-export publish pass
+uv run capt scene apply recordings/demo.cap recordings/demo.events.json \
+  --style orbit --duration 12 --yes
+cap export recordings/demo.cap out.mp4 --json
+# frame-difference check (see skill doc) or eyeball mid.png vs flat.png
+```
+
+All three styles verified this way: orbit (swing, 60.8%), reveal (static
+lean-back, keystoned in-frame), punch (tilted inside each window, flat in
+the gaps). Geometry gotchas that bite: `zoom` is camera *distance* (larger
+= smaller on screen — decrease it to make the recording bigger, there's no
+fov compensation), and only `tiltX/tiltY/rotateX/rotateY/fov/blur*` are
+animatable tracks — not `roll`/`panX`/`panY`/`zoom`.
+
+## Whole-take-then-sections workflow (demo timelines)
+
+For a product demo you style after the fact, don't record per-section:
+record the WHOLE take once, verify it, style it, export it once, then cut
+labeled sections. `cap export` ignores timeline trim when driven headlessly
+(verified 0.6.0 — a trimmed `timeline.segments[0].start/end` still exports
+full length), so section splits happen on the exported MP4 with ffmpeg:
+
+```bash
+# 1. record the whole walkthrough (steps = verified beats)
+uv run capt record https://app.example --steps beats.json \
+  --screen <id> --until-stopped
+#    → take.cap + take.events.json + take.beats.json ({"complete": bool, "beats": [...]})
+
+# 2. check completeness BEFORE styling — every beat ok, or re-record
+python3 -c 'import json; b=json.load(open("recordings/take.beats.json")); \
+  print("complete:", b["complete"]); \
+  [print(" FAIL", x["label"], x["error"]) for x in b["beats"] if not x["ok"]]'
+
+# 3. style the full take (zoom + 3D scene, optional gradient background)
+uv run capt scene apply recordings/take.cap recordings/take.events.json \
+  --style punch --yes
+uv run capt config recordings/take.cap --preset animated   # optional
+
+# 4. export once, warmup first if this .cap never exported (see above)
+cap export recordings/take.cap recordings/take-styled.mp4 --json
+
+# 5. cut labeled sections for the demo timeline
+uv run capt section list recordings/take.beats.json        # preview boundaries
+uv run capt section cut recordings/take-styled.mp4 \
+  recordings/take.beats.json --out demo-sections
+```
+
+Sections inherit the full take's effects; each section is a normal MP4
+(re-encoded CRF 18 — frame-accurate, timeline-assembly safe). Re-cut with
+different boundaries any time without re-rendering the styled export, or
+hand-write a sections JSON (`[{"name", "start_s", "end_s"}]`) for arbitrary
+splits that don't line up with beats.
 
 ## If something's off
 

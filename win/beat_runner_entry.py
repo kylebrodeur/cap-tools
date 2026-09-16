@@ -27,6 +27,8 @@ def main():
     ap.add_argument("--mic", default=None)
     ap.add_argument("--system-audio", action="store_true")
     ap.add_argument("--camera", default=None)
+    ap.add_argument("--scene", default=None,
+                    choices=["reveal", "punch", "orbit", "flat"])
     ap.add_argument("--until-stopped", action="store_true")
     args = ap.parse_args()
 
@@ -39,9 +41,8 @@ def main():
     result = run_beat(
         args.url, step_list, args.out_dir, name=args.name,
         screen_id=args.screen, window_id=args.window, marker_source=args.marker_source,
-        export_to=args.export_to,
         mic=args.mic, system_audio=args.system_audio, camera=args.camera,
-        until_stopped=args.until_stopped,
+        until_stopped=args.until_stopped, scene_style=args.scene,
     )
     print(json.dumps(asdict(result)))
 

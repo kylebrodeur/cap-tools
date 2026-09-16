@@ -24,6 +24,7 @@ class BeatResult:
     cap_path: str
     events: list
     zoom_segments: list
+    scene_segments: list
     export_path: Optional[str] = None
 
 
@@ -144,6 +145,7 @@ def run_beat(
     window_id: Optional[str] = None,
     marker_source: str = "steps",
     zoom_amount: float = 2.0,
+    scene_style: Optional[str] = None,
     export_to: Optional[str] = None,
     mic: Optional[str] = None,
     system_audio: bool = False,
@@ -201,11 +203,17 @@ def run_beat(
             from capt.record.macos_capture import GlobalCapture
             capture = GlobalCapture(tracker)
             capture.start()
-
+        beat_report = []
         if "steps" in sources and (url or steps):
-            drive_steps(url, steps, tracker,
-                        storage_state=storage_state, user_data_dir=user_data_dir)
-
+            try:
+                beat_report = drive_steps(url, steps, tracker,
+                                          storage_state=storage_state, user_data_dir=user_data_dir)
+            except RuntimeError as e:
+                # A failed beat means the take is incomplete — record the
+                # failure and re-raise AFTER the recording is finalized (see
+                # finally) so the operator sees exactly which beat broke.
+                print(f"✗ beat driving failed: {e}")
+                raise
         if until_stopped:
             _wait_for_stop_request(recording_id)
     finally:
@@ -219,10 +227,26 @@ def run_beat(
 
     events = tracker.events()
     write_events(events, str(Path(cap_path).with_suffix(".events.json")))
+    if beat_report:
+        report_path = Path(cap_path).with_suffix(".beats.json")
+        report_path.write_text(json.dumps({
+            "complete": all(b["ok"] for b in beat_report),
+            "beats": beat_report,
+        }, indent=2))
     zoom_segments = build_zoom_segments(events, amount=zoom_amount)
+    scene_segments = []
+    if scene_style:
+        from capt.scene3d import build_scene_segments as _build_scene
+        try:
+            scene_segments = _build_scene(events, style=scene_style)
+        except ValueError as e:
+            print(f"⚠ scene step skipped, invalid style: {e}")
     try:
         current = read_config(cap_path)
         merged = merge_zoom_segments(current, zoom_segments)
+        if scene_segments:
+            from capt.scene3d import merge_scene_segments
+            merged = merge_scene_segments(merged, scene_segments)
         write_config(cap_path, merged)
     except (Exception, SystemExit) as e:
         print(f"⚠ zoom/config step failed, continuing without it: {e}")
@@ -237,5 +261,6 @@ def run_beat(
         cap_path=cap_path,
         events=events,
         zoom_segments=zoom_segments,
+        scene_segments=scene_segments,
         export_path=export_path,
     )
