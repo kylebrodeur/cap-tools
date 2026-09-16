@@ -166,6 +166,22 @@ convention as Cap's own `cap agents install`. See `bin/install-skill.js`.
 └── upstream/                         # draft materials for a potential CapSoftware/Cap contribution
 ```
 
+## Install on any machine
+
+Requires Cap Desktop + its `cap` CLI on the same machine (Windows via WSL
+bridge, macOS/Linux native). Then:
+
+```bash
+uv tool install git+https://github.com/kylebrodeur/cap-tools
+# or: pipx install git+https://github.com/kylebrodeur/cap-tools
+capt --version
+```
+
+From a checkout, `uv run capt …` works without installing. Windows hosts
+additionally run `powershell -File win/install.ps1` (see
+[`win/`](win/)). PyPI publication is pending — install straight from the
+repo for now.
+
 ## Requirements
 
 - **macOS/Linux:** Python 3.11+, [uv](https://docs.astral.sh/uv/), Cap Desktop
