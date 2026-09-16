@@ -58,6 +58,10 @@ never closes it) — the capture shows the actual app shell. Quit any other
 Chrome instance first: the profile lock and window enumeration both
 misbehave with two running.
 
+On Windows, run capt natively on Windows (never CDP across the WSL boundary
+— Chrome's WebSocket resets unpredictably; see docs/FINDINGS.md §7). Full
+PowerShell runbook: `docs/windows-pwa-capture-runbook.md` in cap-tools.
+
 ## 2. Check completeness before styling
 
 ```bash
