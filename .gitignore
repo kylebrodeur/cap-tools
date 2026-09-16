@@ -8,6 +8,7 @@ guide/spike/spike-output/
 recordings/
 *.cap
 *.mp4
+dist/
 
 # pi agent session state
 .pi/
