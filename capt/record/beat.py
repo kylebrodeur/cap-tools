@@ -153,6 +153,7 @@ def run_beat(
     until_stopped: bool = False,
     storage_state: Optional[str] = None,
     user_data_dir: Optional[str] = None,
+    cdp_endpoint: Optional[str] = None,
 ) -> BeatResult:
     """Run one beat: record, drive/capture markers, stop, build+merge zoom,
     optionally export.
@@ -207,7 +208,8 @@ def run_beat(
         if "steps" in sources and (url or steps):
             try:
                 beat_report = drive_steps(url, steps, tracker,
-                                          storage_state=storage_state, user_data_dir=user_data_dir)
+                                          storage_state=storage_state, user_data_dir=user_data_dir,
+                                          cdp_endpoint=cdp_endpoint)
             except RuntimeError as e:
                 # A failed beat means the take is incomplete — record the
                 # failure and re-raise AFTER the recording is finalized (see

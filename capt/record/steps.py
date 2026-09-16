@@ -151,6 +151,7 @@ def _browser_context_args(storage_state, user_data_dir) -> dict:
 def drive_steps(url, steps: list, tracker,
                 storage_state: Optional[str] = None,
                 user_data_dir: Optional[str] = None,
+                cdp_endpoint: Optional[str] = None,
                 timeout_ms: int = DEFAULT_STEP_TIMEOUT_MS) -> list:
     """Launch Playwright Chromium, optionally navigate to url, then drive
     each step as a VERIFIED beat in order (see run_beats).
@@ -176,9 +177,16 @@ def drive_steps(url, steps: list, tracker,
     validate_steps(steps)
     headless = not _needs_visible_browser(url, steps)
     auth = _browser_context_args(storage_state, user_data_dir)
-
     with sync_playwright() as p:
-        if auth.get("user_data_dir"):
+        if cdp_endpoint:
+            # Attach to an ALREADY-RUNNING browser (e.g. the installed PWA
+            # launched with --remote-debugging-port) and drive it in place —
+            # the recording captures the real app shell, not a synthetic
+            # Chromium window.
+            browser = p.chromium.connect_over_cdp(cdp_endpoint)
+            context = browser.contexts[0] if browser.contexts else browser.new_context()
+            page = context.pages[0] if context.pages else context.new_page()
+        elif auth.get("user_data_dir"):
             context = p.chromium.launch_persistent_context(
                 auth["user_data_dir"], headless=headless)
             browser, page = None, context.pages[0] if context.pages else context.new_page()
@@ -195,7 +203,12 @@ def drive_steps(url, steps: list, tracker,
             report = run_beats(page, steps, tracker, timeout_ms=timeout_ms)
             return report
         finally:
-            if browser is not None:
+            if cdp_endpoint:
+                # Attached to a live browser — disconnect, never close the
+                # user's actual PWA/Chrome instance.
+                if browser is not None:
+                    browser.close()  # disconnect only — host browser keeps running
+            elif browser is not None:
                 browser.close()
             else:
                 context.close()

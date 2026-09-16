@@ -93,12 +93,15 @@ def main():
 @click.option("--user-data-dir", default=None,
               help="Path to a Chrome/Chromium profile directory for a persistent logged-in context "
                    "(wins over --storage-state)")
+@click.option("--cdp", "cdp_endpoint", default=None,
+              help="Attach to an already-running browser over CDP (e.g. the installed PWA "
+                   "launched with --remote-debugging-port) instead of launching a new one")
 @click.option("--pick", is_flag=True,
               help="Interactively pick a screen or window (TTY only; agents pass --screen/--window instead)")
 @click.option("--json", "json_out", is_flag=True, help="Emit JSON output")
 def record(url, name, out, screen, window, steps, marker_source, export_to,
            mic, system_audio, camera, scene, until_stopped, storage_state, user_data_dir,
-           pick, json_out):
+           cdp_endpoint, pick, json_out):
     """Automate a browser-driven screen recording with automatic zoom.
 
     On macOS/Linux, runs in-process (no PowerShell hop). On WSL, invokes the
@@ -133,7 +136,7 @@ def record(url, name, out, screen, window, steps, marker_source, export_to,
                       marker_source=marker_source, export_to=export_to,
                       mic=mic, system_audio=system_audio, camera=camera, until_stopped=until_stopped,
                       storage_state=storage_state, user_data_dir=user_data_dir,
-                      scene_style=scene)
+                      cdp_endpoint=cdp_endpoint, scene_style=scene)
 
 
     if json_out:

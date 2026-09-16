@@ -36,6 +36,28 @@ take as `<name>.beats.json`:
 - Beat `elapsed_s` is anchored to the recording's own timeline, so beat
   boundaries line up with the exported MP4.
 
+
+### Recording the installed PWA app shell (not a fresh Chromium)
+
+`capt record` launches its own Chromium by default. To record the real
+installed PWA (e.g. a Chrome app-mode window), attach over CDP:
+
+```bash
+# 1. launch the PWA shell with a debugging port (app-mode, any URL):
+open -na "Google Chrome" --args "--app=http://localhost:8080" \
+  "--remote-debugging-port=9222" "--user-data-dir=/tmp/pwa-profile"
+# 2. find the app window (fresh ID each launch — never cache it):
+cap record windows --json          # the window named after the app
+# 3. record that window while capt drives the SAME instance over CDP:
+uv run capt record --window <id> --steps beats.json \
+  --cdp http://localhost:9222 --out recordings
+```
+
+`--cdp` attaches to the running browser (disconnects after the take,
+never closes it) — the capture shows the actual app shell. Quit any other
+Chrome instance first: the profile lock and window enumeration both
+misbehave with two running.
+
 ## 2. Check completeness before styling
 
 ```bash
